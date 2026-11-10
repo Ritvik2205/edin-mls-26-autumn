@@ -32,3 +32,6 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+# submission artefact
+supplementary_code.zip
