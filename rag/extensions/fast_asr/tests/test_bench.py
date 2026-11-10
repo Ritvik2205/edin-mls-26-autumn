@@ -84,6 +84,23 @@ class BenchTests(unittest.TestCase):
                          [("q0", "0"), ("q1", "0"), ("q2", "0"), ("q0", "1"), ("q2", "1")])
         self.assertEqual(len(read_cache(self.cache)), 3)
 
+    def test_resume_backfills_cache_from_csv(self):
+        # killed after the CSV row was flushed but before the cache line was written
+        self.run_it(FakeTranscriber(), items(1))
+        self.cache.write_text("")
+        fake = FakeTranscriber()
+        self.run_it(fake, items(2))
+        self.assertEqual(read_cache(self.cache), {"q0": "text q0", "q1": "text q1"})
+        self.assertEqual(fake.calls, ["q1"])
+
+    def test_resume_refuses_different_configuration(self):
+        self.run_it(FakeTranscriber(), items(1))
+        other = dict(META, cuda="none")
+        with self.assertRaisesRegex(ValueError, "cuda"):
+            run_bench(FakeTranscriber(), items(2), "v2", "full", self.csv, self.cache, 0, [], other)
+        with self.assertRaisesRegex(ValueError, "setting"):
+            run_bench(FakeTranscriber(), items(2), "v2", "m1", self.csv, self.cache, 0, [], META)
+
 
 if __name__ == "__main__":
     unittest.main()

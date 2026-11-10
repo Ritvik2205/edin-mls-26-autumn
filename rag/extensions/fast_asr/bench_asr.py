@@ -33,11 +33,14 @@ REPO = Path(__file__).resolve().parents[3]
 CORPUS = REPO / "rag" / "data" / "rag_corpus"
 
 
-def _done(out_csv: Path) -> set:
+CONFIG_KEYS = ("split", "cuda", "variant", "setting")
+
+
+def _existing(out_csv: Path) -> list[dict]:
     if not out_csv.exists():
-        return set()
+        return []
     with out_csv.open(newline="", encoding="utf-8") as f:
-        return {(r["query_id"], int(r["pass"])) for r in csv.DictReader(f)}
+        return list(csv.DictReader(f))
 
 
 def run_bench(model, items, variant, setting, out_csv, cache_path, warmup, repeat_ids, meta) -> int:
@@ -47,8 +50,19 @@ def run_bench(model, items, variant, setting, out_csv, cache_path, warmup, repea
     out_csv are skipped (resume). Returns the number of rows written by this call.
     """
     out_csv, cache_path = Path(out_csv), Path(cache_path)
-    done = _done(out_csv)
+    existing = _existing(out_csv)
+    current = {**meta, "variant": variant, "setting": setting}
+    for key in CONFIG_KEYS:
+        found = {r[key] for r in existing} - {str(current[key])}
+        if found:
+            raise ValueError(f"{out_csv} already holds rows with {key}={sorted(found)}, this run has "
+                             f"{key}={current[key]}; use a new --out-csv/--cache for a new configuration")
+    done = {(r["query_id"], int(r["pass"])) for r in existing}
     cache = read_cache(cache_path)
+    for r in existing:  # a run killed between the CSV row and the cache line: backfill from the CSV
+        if r["pass"] == "0" and r["query_id"] not in cache:
+            append_cache(cache_path, r["query_id"], r["transcript"])
+            cache[r["query_id"]] = r["transcript"]
     for item in items[:warmup]:
         model.transcribe(item)
     model.after_warmup()
@@ -73,11 +87,12 @@ def run_bench(model, items, variant, setting, out_csv, cache_path, warmup, repea
                    "asr_ms": round(asr_ms, 3),
                    "ms_per_token": round(m["decode_ms"] / max(m["n_tokens"], 1), 3),
                    "empty": int(not m["transcript"].strip())}
-            w.writerow(row)
-            f.flush()
-            if qid not in cache:
+            if qid not in cache:  # cache first, so a kill between the two never leaves a cache hole
                 append_cache(cache_path, qid, m["transcript"])
                 cache[qid] = m["transcript"]
+            w.writerow(row)
+            f.flush()
+            done.add((qid, p))
             written += 1
             print(f"[{variant}/{setting} p{p}] {qid} asr={asr_ms:.1f} ms tokens={m['n_tokens']}", flush=True)
     return written
