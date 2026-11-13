@@ -123,13 +123,13 @@ git commit -m "chore: scaffold extensions and record PyTorch baseline"
 
 - [ ] **Step 1:** Run `sbatch --gres=gpu:nvidia_geforce_rtx_2080_ti:1 hw1-asr/run_asr.sbatch` and copy `asr-<jobid>.out` to `results/hw1/`. Expected: four ALL PASS, `Status: PASS`, and an `nvidia-smi -L` line.
 - [ ] **Step 2:** On the same node type, run `./run.sh --cuda none --profile > results/hw1/profile_torch.txt`.
-- [ ] **Step 3:** Try-this runs, 3 repeats each, values into `tryit.csv`:
+- [ ] **Step 3:** Try-this runs, 3 repeats each, values into `tryit.csv`. These are *optional* per forum #20/#25. Do T3 and T4 first because they feed the analysis; T1/T2 only if time allows:
   - T1: `ROPE_THREADS` ∈ {32, 64, 128, 256, 512, 1024}, audio-encoder GB/s.
   - T2: `REDUCE_THREADS` sweep, layernorm-encoder vs softmax-vocab GB/s.
   - T3: `TILE` ∈ {8, 16, 32}, encoder GFLOP/s and lm_head ms.
   - T4: `ATTN_WARPS` ∈ {1, 2, 4, 8, 16}, encoder-case ms.
   - Restore the default constants afterwards. `git diff hw1-asr/csrc` should show only the blank fills.
-- [ ] **Step 4:** In `questions.md`, draft one answer per guide: T1 Q1, T2 Q3, T3 Q2, T4 Q1. Use the GPU's peak bandwidth (616 GB/s for the 2080 Ti) and FP32 peak.
+- [ ] **Step 4:** In `questions.md`, draft one answer per guide: T1 Q1, T2 Q3, T3 Q2, T4 Q1. These four are required and go in one main-body subsection, together with the key `make test`/`--profile` lines and the GPU name. Full logs go in the appendix. Use the GPU's peak bandwidth (616 GB/s for the 2080 Ti) and FP32 peak.
 - [ ] **Step 5:** Commit: `git add results/hw1 && git commit -m "hw1: measurement pack"`
 
 ### Task 6: Pure helpers (local, no GPU)

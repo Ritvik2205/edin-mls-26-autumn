@@ -28,7 +28,9 @@ exact-vs-approximate contrast and a genuine quality–cost trade-off.
 
 **Goals**
 - G1. All four HW1 tasks pass `make test` and `./run.sh` on one pinned GPU type. Required HW1
-  comparisons, one Try-this per task, and one guide question per task are measured.
+  comparisons and one guide question per task (four, in the main body) are measured. Per-task
+  Try-this runs are optional (forum #20/#25); keep T3 TILE and T4 ATTN_WARPS, which feed the
+  analysis. See `docs/coursework-clarifications.md`.
 - G2. A KV-cache decoding path (V2) built on the student's own kernels, with transcripts
   matching V1. Hypothesis: bit-identical token probabilities (see §5).
 - G3. Encoder trimming (V3) with a sweep of trim margins, producing a latency-vs-quality curve.
@@ -216,6 +218,10 @@ Analysis threads for the report:
   frozen results.
 
 ## 7. Open item needing staff confirmation
+
+*(Update 2026-11-13)* Forum #33: "do not change the input and the name of the functions. You are
+free to do anything else." An *added* `launch_rope_at` changes no existing name or signature, so it
+appears to be allowed. The fallback stays the default until the kernel exists.
 
 *(Fallback decided)* If the staff answer is still pending at the end of Phase 1, build the fallback
 first. It needs no change outside the five files. Swap in `launch_rope_at` if it is approved.
