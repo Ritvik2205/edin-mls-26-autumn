@@ -1,0 +1,487 @@
+\documentclass{article}
+
+% ============================================================
+% INFR11269 Machine Learning Systems -- Coursework Report (skeleton)
+% Built from report/latex_template/report.tex. The .sty/.bst files in this
+% directory are unmodified copies of report/latex_template/.
+%
+% Format rules kept from the template: no geometry/font/spacing changes,
+% \iclrfinalcopy stays commented out, abstract environment stays commented
+% out, \author and \lhead lines unchanged, References before the Appendix.
+%
+% Numbers drop in from rag/extensions/analysis/summarise.py:
+%   python rag/extensions/analysis/summarise.py --split dev      --out report/asr-redundancy
+%   python rag/extensions/analysis/summarise.py --split practice --out report/asr-redundancy
+% which writes tables/asr_{split}.tex and figures/{breakdown,tradeoff,speedup}_{split}.pdf
+% next to this file. Until then every slot renders as a red \TBD box.
+% ============================================================
+
+\usepackage{iclr2027_conference,times}
+
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{verbatim}
+
+% The official ICLR archive includes math_commands.tex. It is optional:
+\input{math_commands.tex}
+
+% ---------- placeholder macros (remove nothing silently) ----------
+\newcommand{\TBD}[1]{\textcolor{red}{\textbf{[TBD: #1]}}}
+\newcommand{\NOTE}[1]{\textcolor{blue}{\textit{[Note: #1]}}}
+% \inputorTBD{file}{what goes here}
+\newcommand{\inputorTBD}[2]{\IfFileExists{#1}{\input{#1}}{\TBD{#2 (\texttt{\detokenize{#1}} not generated yet)}}}
+% \figorTBD{file}{width}{what goes here}
+\newcommand{\figorTBD}[3]{\IfFileExists{#1}{\includegraphics[width=#2]{#1}}{\fbox{\parbox[c][3.2cm][c]{#2}{\centering\TBD{#3}\\[2pt]\scriptsize\texttt{\detokenize{#1}}}}}}
+% \logorTBD{file}{what goes here}
+\newcommand{\logorTBD}[2]{\IfFileExists{#1}{{\scriptsize\verbatiminput{#1}}}{\TBD{#2 (\texttt{\detokenize{#1}} missing)}}}
+
+\title{Removing Redundant Computation from a\\Speech-to-Text Front End}
+
+% Keep this line unchanged.
+\author{Anonymous coursework submission}
+
+% Keep this COMMENTED OUT.
+% Review mode is part of the coursework format and is checked automatically.
+% \iclrfinalcopy
+
+\begin{document}
+
+\maketitle
+
+% Course-specific template fingerprint. Keep this line unchanged.
+\lhead{Under review as a report for UoE 26/27 Sem1 INFR11269: Machine Learning Systems}
+
+% Keep this COMMENTED OUT.  (The template forbids the abstract environment;
+% the draft abstract is kept here as a comment so it can be reused in the
+% introduction or the video.)
+% \begin{abstract}
+% \end{abstract}
+%
+% DRAFT ABSTRACT (4 sentences, not rendered):
+% In an audio-query RAG pipeline, the speech-to-text stage spends most of its
+% time on work whose result is already known: re-running the decoder over the
+% whole prefix for every token, and encoding up to 30 s of padding for queries
+% that average about 5 s.
+% We remove the first redundancy exactly with a KV cache built on our own CUDA
+% kernels, and the second approximately by trimming the encoder input to the
+% real audio length plus a margin.
+% On a pinned RTX 2080 Ti, the KV cache cuts ASR latency by [TBD]x with
+% bit-identical transcripts, and trimming adds a further [TBD]x at a Recall@10
+% change of [TBD] on the 125-query dev split.
+% A cost model written before measurement predicts both speed-ups within
+% [TBD]%, and explains why decoding then becomes a weight-bandwidth-bound GEMV.
+
+% ============================================================
+\section{Introduction}
+\label{sec:introduction}
+
+The system under study answers spoken questions: a 16\,kHz audio query is
+transcribed by an automatic speech recognition (ASR) model, the transcript is
+embedded and used for dense retrieval over a 24{,}000-passage corpus, and the
+retrieved passages are passed to a hosted language model (the ELM) that writes the
+answer \citep{lewis2020rag}. Retrieval only ever sees the transcript, so the ASR
+stage is both the first latency cost and the only source of input error for
+everything downstream.
+
+The supplied ASR model, GLM-ASR-Nano, runs on CUDA kernels we wrote for HW1. Its
+generation loop has two sources of redundant work. First, it has no key--value
+(KV) cache: each new token re-runs all 28 decoder layers over the entire prefix.
+Second, every clip is padded to 30\,s as in Whisper-style encoders
+\citep{radford2023whisper}, so the 32-layer encoder always processes 1500 frames,
+although course queries last 2.2--10.4\,s (mean \TBD{5.2/5.5\,s practice/dev}).
+
+\textbf{Question.} \emph{How much of ASR latency in this pipeline is redundant
+computation, how much of it can be removed exactly (KV cache) or approximately
+(encoder trimming), and what does the approximate removal cost in transcript and
+retrieval quality?}
+
+\textbf{Contributions.}
+\begin{itemize}
+  \item A KV-cache decoding path (V2) that reuses the supplied operations and our
+        kernels, including a RoPE kernel with a position offset, and a test that its
+        token probabilities match the recompute baseline \TBD{bit for bit / max $|\Delta p|$}.
+  \item Encoder trimming (V3) with a margin sweep and a 10\,s bucket that never cuts
+        real audio, giving a latency--quality curve rather than a single point.
+  \item A cost model written before any measurement (\S\ref{sec:costmodel}), compared
+        against the measured speed-ups, and a mechanism-level account of where the
+        remaining time goes once the redundancy is gone.
+  \item An evaluation with one pinned GPU type, separated timing boundaries, and
+        quality measured against retrieval relevance labels, not only transcript agreement.
+\end{itemize}
+Answers to the four required HW1 guide questions are in Appendix~\ref{app:hw1}.
+
+% ============================================================
+\section{Background and baseline}
+\label{sec:background}
+
+\textbf{Model shapes.} The audio encoder has 32 layers with hidden size 1280,
+20 heads of dimension 64, an FFN of 5120 and non-causal attention over $T=1500$
+positions (3000 mel frames after a stride-2 convolution). A projector pools 4
+encoder positions into one audio token. The text decoder has 28 layers, hidden size
+2048, 16 query heads and 4 KV heads of dimension 128 (grouped-query attention),
+an FFN of 6144 and a 59{,}264-token vocabulary; it holds $\approx$1.35\,B parameters,
+or 5.4\,GB in float32. The prompt is 15 text tokens plus the audio tokens, so the
+decoder sequence grows from 59 to 71 positions on the supplied test clip.
+
+\textbf{HW1 kernels.} We implemented the four task kernels the model runs on:
+RoPE (Task~1, \citealp{su2021roformer}), warp/block reductions with RMSNorm,
+LayerNorm and a single-pass online softmax (Task~2, \citealp{milakov2018online}),
+a shared-memory tiled GEMM with a fused GELU epilogue (Task~3), and a tiled
+attention kernel with an online softmax over key tiles (Task~4,
+\citealp{vaswani2017attention,dao2022flashattention}). All are hand-written CUDA; no
+cuBLAS, cuDNN or CUTLASS is used on the CUDA path.
+
+\textbf{Baselines.} V0 is the supplied model on PyTorch (\texttt{ASR\_CUDA=none}).
+V1 is the same model with every operation on our kernels (\texttt{ASR\_CUDA=all});
+it is the baseline for the investigation. On \TBD{GPU name from \texttt{nvidia-smi -L}},
+\texttt{make test} passes all four tasks (\TBD{key lines: max error per task,
+GEMM GFLOP/s vs cuBLAS on encoder fc1}), and \texttt{./run.sh --profile} reports
+\TBD{V1 ms/transcription} against \TBD{V0 ms} for PyTorch, with \TBD{top three
+operations and their shares}. Full logs are in Appendix~\ref{app:logs}.
+
+% ============================================================
+\section{Design}
+\label{sec:design}
+
+\begin{table}[t]
+\centering
+\small
+\caption{Variants. Every variant runs the supplied \texttt{ops.*} functions, so
+\texttt{ASR\_CUDA} selects kernels as in V0/V1; \texttt{model.py} is unchanged.}
+\label{tab:variants}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lll}
+\toprule
+ID & Configuration & Role \\
+\midrule
+V0 & supplied model, PyTorch path & supplied reference \\
+V1 & supplied model, our kernels & investigation baseline \\
+V2 & V1 + KV-cache decoding & exact optimisation \\
+V3-$m$ & V2 + encoder input cut to real length + margin $m$ & approximate \\
+V2-torch & V2 control flow on the PyTorch path & contrast: cuBLAS at $M=1$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{V2: KV cache.} Each decoder layer gets preallocated key and value caches of
+shape $[1, S_{\max}, 4, 128]$ with $S_{\max} = P + N_{\max}$ for prompt length $P$
+and token budget $N_{\max}$ ($\approx$28\,MB for the longest query;
+cf.\ \citealp{kwon2023pagedattention,pope2023efficiently}). Prefill runs the decoder
+once over the prompt with causal attention and writes rows $[0, P)$. Each later step
+runs one position: $q/k/v$ projections with $M=1$, RoPE at position $P+t-1$, a write
+into cache row $P+t-1$, and attention of one query against the cache prefix. The
+attention kernel's causal shift ($\mathit{seq}_k - \mathit{seq}_q$) already gives the
+correct window, and a prefix slice of a batch-1 cache is contiguous, so no copy is
+needed. Greedy argmax and the EOS set are those of the supplied loop. Because every
+output row of our tiled GEMM accumulates over $K$ in the same order regardless of
+$M$, and attention is per query, we \emph{hypothesise} bit-identical probabilities;
+\S\ref{sec:results} tests it.
+
+\textbf{RoPE offset.} The supplied RoPE kernel rotates positions $0..S-1$. We
+measured two ways to rotate one token at position $p$: (a) a new entry point
+\texttt{launch\_rope\_at} in \texttt{task1\_rope.cu} that shares a device helper with
+the original kernel and takes \texttt{pos\_offset} (existing names and signatures
+untouched); (b) a fallback that runs the unchanged \texttt{launch\_rope} over a
+padded $[1, p{+}1, \dots]$ scratch tensor and keeps the last row. Variant (b) needs no
+kernel change but its cost grows with $p$. \TBD{which path the headline numbers use;
+cost of (b) vs (a) per token}.
+
+\textbf{V3: encoder trimming.} From the feature mask we take the real mel length
+$L$ and keep $T'_{\mathrm{mel}} = \min(3000, \mathrm{roundup}_8(L + 100m))$ frames for
+margin $m \in \{0, 1, 2, 5\}$\,s (rounding to 8 matches conv stride 2 $\times$ pool 4).
+The bucket setting b10 uses $T'_{\mathrm{mel}} = \max(1000, \mathrm{roundup}_8(L))$,
+a fixed shape for every query up to 10\,s that still never cuts audio (the longest
+query is 10.4\,s). In every setting $T' \ge L$, so the number of audio tokens and the
+prompt length are unchanged; a unit test asserts this. The approximation is that real
+frames no longer attend to the removed padding frames in the non-causal encoder,
+which is the mechanism that can change transcripts.
+
+\textbf{Timing structure.} We time CPU feature extraction (\texttt{feat\_ms}),
+encoder, prefill (which produces the first token) and the remaining decode steps
+separately with CUDA events. \texttt{ms\_per\_token} is decode time after the first
+token divided by the number of such steps, so prefill cost and per-step cost are not
+mixed. V1 is timed by a driver that calls the supplied \texttt{encode\_audio} and
+\texttt{next\_token\_probs} in the supplied control flow, with events in between; a
+test checks it reproduces \texttt{generate()} exactly.
+
+% ============================================================
+\section{Cost model (written before measurement)}
+\label{sec:costmodel}
+
+\textbf{Decode floor.} After the KV cache, each step multiplies a single activation
+row by every decoder weight matrix, so it must stream all weights from DRAM once:
+$1.35\,\text{B} \times 4\,\text{B} \approx 5.4$\,GB, or $\approx$8.8\,ms per token at
+the RTX 2080 Ti's 616\,GB/s; the lm\_head adds 0.49\,GB (0.8\,ms). This is a roofline
+bound \citep{williams2009roofline}: at $M=1$ the arithmetic intensity is
+$\approx$0.5\,FLOP/byte, far below the ridge point.
+
+\textbf{V1 recompute.} V1 runs the full decoder over prefixes of 59 to 70 positions,
+$\sum_{S=59}^{70} S = 774$ position-passes for 12 steps \TBD{confirm token count of
+test clip}, against $59 + 11 = 70$ for V2. Each position costs $2 \times 1.35$\,GFLOP,
+so a V1 step is 159--189\,GFLOP. Our tiled GEMM also re-reads each weight matrix once
+per row tile, $\lceil S/\mathrm{TILE} \rceil = 4$ times for TILE${}=16$, so a V1 step
+moves $\gtrsim$21.6\,GB. We predict V1 step time
+$\approx \max(\text{FLOP}/F_{\mathrm{ach}},\ 4 \times 8.8\,\text{ms})$ with $F_{\mathrm{ach}}$
+the GFLOP/s our GEMM reaches on decoder shapes in \texttt{make test}.
+
+\textbf{Encoder trimming.} Per layer, linear layers cost $\approx 39.3\,\text{M}\cdot T$
+FLOP and attention $5120\,T^2$ FLOP, so at $T=1500$ attention is 16\% of encoder
+FLOPs (2.26\,TFLOP in total). Table~\ref{tab:costmodel} gives the predicted encoder
+ratio $E(T')/E(1500)$ for the median 5.0\,s query.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Predictions fixed before measurement (median 5.0\,s query, $L=500$ mel
+frames; RTX 2080 Ti, 616\,GB/s). Encoder ratios count FLOPs of the 32 transformer
+layers only (convolutions and projector excluded).}
+\label{tab:costmodel}
+\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{lrrrrrr}
+\toprule
+Setting & $T'_{\mathrm{mel}}$ & $T'$ & linear & attention & $E(T')/E(1500)$ & measured \\
+\midrule
+full (V2) & 3000 & 1500 & 1.000 & 1.000 & 1.000 & \TBD{} \\
+m0  & 504  & 252 & 0.168 & 0.028 & 0.145 & \TBD{} \\
+m1  & 600  & 300 & 0.200 & 0.040 & 0.174 & \TBD{} \\
+m2  & 704  & 352 & 0.235 & 0.055 & 0.205 & \TBD{} \\
+m5  & 1000 & 500 & 0.333 & 0.111 & 0.297 & \TBD{} \\
+b10 & 1000 & 500 & 0.333 & 0.111 & 0.297 & \TBD{} \\
+\midrule
+\multicolumn{5}{l}{V2 decode, ms/token floor (5.4\,GB / 616\,GB/s; +0.8\,ms lm\_head)} & 8.8 & \TBD{} \\
+\multicolumn{5}{l}{V1 step, weight-traffic bound ($4 \times 5.4$\,GB at TILE${}=16$)} & 35 & \TBD{} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Combining terms, the predicted V2 latency is $E + D_P + \sum_t(\mathrm{step}_t + H)$
+and V3 replaces $E$ by $E \cdot E(T')/E(1500)$. \TBD{predicted V2 and V3-m1 ms/query
+from the V1 profile shares; commit hash at which predictions were recorded}.
+
+% ============================================================
+\section{Experimental setup}
+\label{sec:setup}
+
+\textbf{Hardware and boundaries.} Every timing comes from one pinned GPU type
+(\texttt{--gres=gpu:nvidia\_geforce\_rtx\_2080\_ti:1}, \TBD{\texttt{nvidia-smi -L}
+string, node, driver, CUDA 12.8}). The ASR timing boundary is a warm model, from a
+16\,kHz float array in to a token list out; model load is excluded and reported once
+(\TBD{s}). Retrieval scoring runs on a local CPU (\TBD{CPU model}) from cached
+transcripts, which the course allows; it does not contribute to any reported latency,
+and every retrieval variant uses the same machine.
+
+\textbf{Data and protocol.} Development used the practice split (350 queries); the
+final tables use the dev split (125 queries), run once after the design was frozen at
+\TBD{commit}. Each run discards 5 warm-up queries, times every query once, then
+repeats a fixed 50-query subset to estimate run-to-run variance. V2-torch runs on
+50 dev queries plus the test clip.
+
+\textbf{Metrics.} Cost: ASR latency mean and p95, \texttt{prefill\_ms},
+\texttt{ms\_per\_token}, encoder and decoder ms, and peak GPU memory. Quality:
+transcript exact-match rate and word error rate against V1 (there are no reference
+transcripts), max $|\Delta p|$ of token probabilities for V2, and Recall@10, MRR@10
+and NDCG@10 against the dev relevance labels, with a paired bootstrap interval on
+the per-query difference from V1. If budget allows, an LLM judge scores answers
+(correctness, grounding, completeness) on the queries whose transcript changed plus an
+equal number of unchanged controls, always given the V1 transcript as the question
+\TBD{run or drop; request count}.
+
+% ============================================================
+\section{Results}
+\label{sec:results}
+
+\begin{table}[t]
+\centering
+\caption{ASR cost and quality per variant, dev split (125 queries), RTX 2080 Ti.
+R@10 brackets give the paired difference from V1 with a 95\% bootstrap interval.
+Generated by \texttt{summarise.py}.}
+\label{tab:main}
+\IfFileExists{tables/asr_dev.tex}{\resizebox{\linewidth}{!}{\input{tables/asr_dev.tex}}}{\TBD{Table 1: \texttt{tables/asr\_dev.tex} not generated yet}}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\figorTBD{figures/breakdown_dev.pdf}{0.48\linewidth}{Fig.\ 1: latency breakdown}\hfill
+\figorTBD{figures/tradeoff_dev.pdf}{0.48\linewidth}{Fig.\ 2: latency vs Recall@10}
+\caption{Left: mean ASR latency split into CPU features, encoder and decoder.
+Right: latency against Recall@10 over trim settings. Dev, $n=125$, RTX 2080 Ti.}
+\label{fig:breakdown}
+\end{figure}
+
+\textbf{KV cache (exact).} \TBD{V2 vs V1 speed-up; transcript match \%; max
+$|\Delta p|$; measured ms/token vs the 8.8\,ms floor (fraction of bandwidth reached);
+prefill vs step split. RoPE (a) vs (b) cost.}
+
+\textbf{Encoder trimming (approximate).} \TBD{encoder ms per setting vs
+Table~\ref{tab:costmodel}; which settings change transcripts and how many; WER;
+$\Delta$Recall@10 CI; whether b10 is indistinguishable from V2.}
+
+\begin{figure}[t]
+\centering
+\figorTBD{figures/speedup_dev.pdf}{0.6\linewidth}{Fig.\ 3: speed-up vs clip duration}
+\caption{Per-query ASR speed-up over V1 against audio duration, with the cost-model
+prediction overlaid \TBD{overlay not yet drawn by summarise.py}. Dev, $n=125$,
+RTX 2080 Ti.}
+\label{fig:speedup}
+\end{figure}
+
+\textbf{Prediction vs measurement.} \TBD{one sentence per row of
+Table~\ref{tab:costmodel}; where the model is off, which term was missing.}
+
+\textbf{V2-torch.} \TBD{cuBLAS at $M=1$: speed and whether probabilities still match.}
+
+% ============================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\textbf{Decode becomes GEMV.} Once prefix recomputation is gone, every decoder
+matrix multiply has $M=1$. Our tiled GEMM launches TILE$\times$TILE thread blocks, of
+which only one row does useful work at $M=1$, so (TILE${}-1$)/TILE of the threads
+idle; the kernel is then limited by how fast those few threads stream weights, not by
+FLOPs. This is HW1 Task~3's TILE trade-off seen from the decode side
+\TBD{TILE sweep at $M=1$: lm\_head ms and GB/s for TILE $\in\{8,16,32\}$}.
+
+\textbf{Attention at $\mathit{seq}_q=1$.} The attention kernel launches one block per
+(batch, head, query tile); with one query that is 16 blocks on a 68-SM GPU, and only
+one of ATTN\_WARPS warps has a query row \TBD{ATTN\_WARPS sweep at $\mathit{seq}_q=1$;
+attention share of step time}.
+
+\textbf{End-to-end share.} \TBD{on 20 dev queries: ASR, retrieval and ELM ms for V1
+and the best V3; what fraction of user-visible latency the ASR saving is.}
+
+\textbf{Considered but not built.} \emph{CUDA Graphs} for the decode step would remove
+launch overhead from $\approx$300 kernel launches per token, but the sequence length
+changes every step, so graphs would need re-capture or padded shapes, and the risk
+was high for the time available. \emph{Split-K attention} for $\mathit{seq}_q=1$ would
+fix the 16-block occupancy problem, but attention is a small share of a step once the
+step is weight-bandwidth-bound \TBD{share}. \emph{FP16 weights} would halve the
+bandwidth floor to $\approx$4.4\,ms/token, but are inexact, break the bit-identical
+claim, and change the float32 kernel inputs the HW1 rules fix. \emph{VAD-based
+trimming} per clip would need an extra model in the pipeline, while the real-length
+floor already never cuts audio.
+
+% ============================================================
+\section{Limitations and conclusion}
+\label{sec:conclusion}
+
+\textbf{Limitations.} All timings come from one GPU type and batch size 1; the
+bandwidth argument predicts different ratios on GPUs with a different
+FLOP-to-bandwidth balance. Without reference transcripts, WER is measured against V1,
+so it measures change rather than error. The dev split has 125 queries, which limits
+how small a retrieval difference can be resolved \TBD{CI width}. The ELM judge
+\TBD{was run on $n$ queries / was not run}.
+
+\textbf{Conclusion.} \TBD{two to three sentences: share of ASR time that was
+redundant; exact vs approximate saving and its quality cost; what now bounds latency.}
+
+% References are excluded from the main-body page limit.
+\bibliography{references}
+\bibliographystyle{iclr2027_conference}
+
+% ============================================================
+\appendix
+
+\section{HW1 kernel answers}
+\label{app:hw1}
+
+One question per guide, quoted verbatim from \texttt{hw1-asr/docs/}. All numbers come
+from the pinned RTX 2080 Ti run in Appendix~\ref{app:logs}.
+
+\subsection{Task 1 (RoPE), Question 1}
+\begin{quote}
+``For the audio encoder case, how many bytes does the kernel read and write in total?
+Which fraction of your GPU's peak bandwidth did you reach?''
+\end{quote}
+\begin{itemize}
+  \item \TBD{byte count from the encoder shape (q and k, 1500 positions, 20 heads $\times$
+        64 dims, read + write, plus inv\_freq).}
+  \item \TBD{achieved GB/s from \texttt{make test1} encoder case; fraction of 616\,GB/s.}
+\end{itemize}
+
+\subsection{Task 2 (reductions), Question 3}
+\begin{quote}
+``How many times does your softmax read each element of \texttt{x} from global memory?
+How many times does the textbook version (max, then sum, then write) read it?''
+\end{quote}
+\begin{itemize}
+  \item \TBD{reads per element in our online-softmax kernel (one pass computing the
+        running max/sum, one pass writing).}
+  \item \TBD{textbook count; supporting measurement: softmax-vocab GB/s from \texttt{make test2}.}
+\end{itemize}
+
+\subsection{Task 3 (GEMM), Question 2}
+\begin{quote}
+``Your kernel reaches only a fraction of cuBLAS's speed on the large cases. Name one
+thing cuBLAS does differently that explains part of the gap. You do not have to
+implement it.''
+\end{quote}
+\begin{itemize}
+  \item \TBD{our GFLOP/s vs cuBLAS on encoder fc1 (1500$\times$5120$\times$1280) from
+        \texttt{make test3}.}
+  \item \TBD{mechanism, e.g.\ register blocking (several outputs per thread),
+        vectorised loads, double-buffered shared memory; tie to the measured gap.}
+\end{itemize}
+
+\subsection{Task 4 (attention), Question 1}
+\begin{quote}
+``How much memory would the full score matrix of one encoder layer take (20 heads,
+1500 x 1500, float32)? How much shared memory does one block of your kernel use
+instead?''
+\end{quote}
+\begin{itemize}
+  \item \TBD{$20 \times 1500 \times 1500 \times 4$\,B; check against the arithmetic.}
+  \item \TBD{shared memory per block from the kernel's tile sizes at ATTN\_WARPS${}=4$
+        (and \texttt{--ptxas-options=-v} or Nsight output).}
+\end{itemize}
+
+\section{Full test and profile logs}
+\label{app:logs}
+
+Environment: \TBD{\texttt{nvidia-smi -L}, node name, driver, CUDA, PyTorch versions}.
+Copy the raw outputs into \texttt{logs/} next to this file to render them verbatim.
+
+\subsection{\texttt{make test}}
+\logorTBD{logs/make_test.txt}{full \texttt{make test} output}
+
+\subsection{\texttt{./run.sh --profile} (V1, our kernels)}
+\logorTBD{logs/profile_cuda.txt}{\texttt{./run.sh --profile} output}
+
+\subsection{\texttt{./run.sh --cuda none --profile} (V0, PyTorch)}
+\logorTBD{logs/profile_torch.txt}{\texttt{./run.sh --cuda none --profile} output}
+
+\subsection{Practice split results}
+\IfFileExists{tables/asr_practice.tex}{{\centering\resizebox{\linewidth}{!}{\input{tables/asr_practice.tex}}\par}}{\TBD{\texttt{tables/asr\_practice.tex} not generated yet}}
+
+\section{Reproducibility}
+\label{app:repro}
+
+Commit: \TBD{hash}. All commands run from the repository root.
+\begin{small}
+\begin{verbatim}
+make -C hw1-asr && make -C hw1-asr test
+(cd hw1-asr && ./run.sh --profile)
+python rag/extensions/fast_asr/bench_asr.py --split dev --variant v2 \
+    --out-csv results/asr/dev_v2.csv --cache rag/.cache/dev_v2.jsonl
+python rag/scripts/evaluate_rag.py --device cpu --split dev \
+    --transcript-cache rag/.cache/dev_v2.jsonl
+python rag/extensions/analysis/summarise.py --split dev --out report/asr-redundancy
+\end{verbatim}
+\end{small}
+\TBD{per-variant command list (V1, V3 margins, bucket), sbatch script, judge commands.}
+
+The supplementary zip (\texttt{scripts/make\_submission\_zip.sh}) contains the five
+HW1 task files, \texttt{rag/extensions/} (KV-cache and trimming variants, timing
+harness, variant ASR worker, analysis), a README separating our code from supplied
+code, and the measured CSV and text results. It contains no data, model weights,
+caches or credentials.
+
+% The AI declaration / student information page is added separately as the
+% final page (template: \newpage, \section*{AI declaration}, group information).
+% It is intentionally not part of this anonymous skeleton.
+
+\end{document}

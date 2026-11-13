@@ -28,7 +28,7 @@ exact-vs-approximate contrast and a genuine quality–cost trade-off.
 
 **Goals**
 - G1. All four HW1 tasks pass `make test` and `./run.sh` on one pinned GPU type. Required HW1
-  comparisons and one guide question per task (four, in the main body) are measured. Per-task
+  comparisons and one guide question per task (four; appendix with an intro pointer, D5) are measured. Per-task
   Try-this runs are optional (forum #20/#25); keep T3 TILE and T4 ATTN_WARPS, which feed the
   analysis. See `docs/coursework-clarifications.md`.
 - G2. A KV-cache decoding path (V2) built on the student's own kernels, with transcripts

@@ -180,7 +180,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--split", choices=["practice", "dev"], required=True)
     ap.add_argument("--results", type=Path, default=REPO / "results")
-    ap.add_argument("--out", type=Path, default=REPO / "report")
+    ap.add_argument("--out", type=Path, default=REPO / "report" / "asr-redundancy")
     args = ap.parse_args()
     csvs = sorted((args.results / "asr").glob(f"{args.split}_*.csv"))
     if not csvs:

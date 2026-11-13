@@ -460,7 +460,7 @@ def test_repeat_rows_excluded_from_main_stats(self): ...   # pass>0 rows used on
   - Limitations and conclusion: 0.5.
 - [ ] **Step 2:** Write it. Every number cites its table or figure. Every timing states its boundary. Negative or partial results are reported as found.
 - [ ] **Step 3:** Appendix: full `make test`, `./run.sh --profile` and `nvidia-smi -L` outputs, plus extra guide answers. References come before the appendix. The declaration page is last, with the AI-use statement covering this planning and coding assistance.
-- [ ] **Step 4:** Run `python report/format_checker/check_report_format.py report/main/report.pdf`. Expected: no FAIL, and main body ≤ 6.
+- [ ] **Step 4:** Run `python report/format_checker/check_report_format.py report/asr-redundancy/main.pdf`. Expected: no FAIL, and main body ≤ 6.
 - [ ] **Step 5:** Anonymity pass: grep the PDF text and metadata for your name, UUN and home paths. Expected: matches only on the final page.
 - [ ] **Step 6:** Commit: `git commit -m "report: final"`
 

@@ -12,7 +12,7 @@ Upstream check (2026-11-13): `main` equals `ed-aisys/edin-mls-26-autumn` `main` 
 
 | Topic | Old instruction | Rule now | Source |
 |---|---|---|---|
-| HW1 guide questions | Answer the questions at the end of every guide (16) | Answer **at least one question per guide (4 total)**. Put them **in the main body**, preferably together in one subsection. Extra answers may go in the main body or the appendix. | #20, `hw1-asr/README.md` |
+| HW1 guide questions | Answer the questions at the end of every guide (16) | Answer **at least one question per guide (4 total)**. **Anywhere in the report** (main body or appendix), as long as all four are there and easy to find: clear formatting or a pointer sentence in the introduction. This supersedes #20's 'main body'. | #20, course-team announcement, README |
 | "Try this" experiments | At least one per task | **Not required.** They are suggested directions. The one required exploration is "Your investigation": one systems question, ASR *or* RAG. | #20, #25 |
 | `make test` / `./run.sh --profile` output | Hand in with the report | Most important results in the main body, the rest in the appendix. | #18, #24, README |
 | Kernel changes | README: change anything. Slides: keep names and signatures. | **Keep every given function's name and inputs.** Anything else may change, including kernel bodies such as `linear_tiled_kernel`. | #33 |
@@ -21,6 +21,25 @@ Upstream check (2026-11-13): `main` equals `ed-aisys/edin-mls-26-autumn` `main` 
 | `cuda-tutorial/` | Lecture said "hw1 not part of coursework" | That remark meant `cuda-tutorial/`, which is **not** reported. The HW1 ASR implementation **is** reported. | #20 (citing #9) |
 | Video structure | Unstated | **No fixed structure or ASR/RAG time split.** It must show an actual run of the system and explain the design choices. Opening with an overview is fine, and so is going task by task. | #21, #22 |
 | Video guide location | — | On Learn: Assessment → Group report & individual review folder. | #21 |
+
+## Course-team announcements
+
+### Task requirements and submission materials
+- Answer one question from each task. "Try this" is optional.
+- The four answers **need not be in the main body**. All four must be in the report and easy to
+  find, e.g. through clear formatting or a statement in the introduction.
+- Do not resubmit unchanged framework code. The zip holds only files needed to demonstrate the
+  system.
+- Lengthy `make test` / `--profile` output: put the most relevant parts in the main body and the
+  rest in the appendix.
+
+### Video: final two-minute questions (about 1 min each, within the 10-minute total)
+1. **Main design choice:** one important decision made when building or experimenting, and why.
+2. **Checking your work:** how you checked the system, or your part of it, worked as intended.
+   An example is preferred.
+- Either ASR or RAG may be discussed; there is no need to cover both. Keep it specific to your
+  own work.
+- One video per group, and not every member needs to speak. The anonymity rules apply.
 
 ## Threads
 
@@ -67,10 +86,9 @@ Upstream check (2026-11-13): `main` equals `ed-aisys/edin-mls-26-autumn` `main` 
 
 ## Effect on this project (Option A: ASR redundancy, solo)
 
-- **Report.** Add one main-body subsection, "HW1 kernels", holding:
-  - four answers: T1 Q1, T2 Q3, T3 Q2, T4 Q1;
-  - the key `make test` / `--profile` lines and the GPU name.
-  Full logs go in the appendix.
+- **Report.** The four answers (T1 Q1, T2 Q3, T3 Q2, T4 Q1) go in Appendix A, with a pointer in
+  the introduction (spec D5). The main body keeps the key `make test` / `--profile` lines and the
+  GPU name. Full logs go in Appendix B.
 - **Try-this sweeps (plan Task 5 Step 3)** are now optional. Keep them only where they feed the
   investigation:
   - T3 `TILE` at M = 1 (decode GEMV). It is cited in the spec §4.7 analysis.
