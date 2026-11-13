@@ -10,6 +10,20 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-10-asr-redundancy-design.md`
 
+## Schedule and priorities (deadline 20 Nov 2026)
+
+Priorities P0/P1/P2 are defined in spec §8. Run P0 first; P1/P2 only if a slot is free.
+
+| Day | Work |
+|-----|------|
+| Fri 13 | Cluster setup (`docs/cluster-setup.md`), `make test`, fix kernel failures (Tasks 0–4). Report skeleton. |
+| Sat 14 | Kernels pass; GPU tests with `FAST_ASR_TEST_CUDA=none`, then all (Tasks 7–10 verification); HW1 numbers (Task 5, T3/T4 Try-this only). |
+| Sun 15 | Task 14 P0 runs: V1, V2, V3 m0/m2/b10 on practice, then dev; repeat subset; RoPE kernel vs scratch. |
+| Mon 16 | Retrieval scoring locally from caches; Task 15 tables/figures; ELM go/no-go (spec §10). |
+| Tue 17 – Wed 18 | Task 16 report; appendix answers. |
+| Thu 19 | Task 17 video, Task 18 zip, format check. |
+| Fri 20 | Buffer, submit. |
+
 ## Global Constraints
 
 - Edit only `csrc/task1_rope.cu`, `csrc/task2_reduce.cuh`, `csrc/task2_reduce.cu`, `csrc/task3_gemm.cu`, `csrc/task4_attention.cu` under `hw1-asr/`. Keep every given function's name and signature, including the `launch_*` entry points.

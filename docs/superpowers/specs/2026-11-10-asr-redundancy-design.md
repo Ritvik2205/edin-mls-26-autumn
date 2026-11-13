@@ -231,3 +231,81 @@ first. It needs no change outside the five files. Swap in `launch_rope_at` if it
   Fallback if refused: implement the RoPE offset in `rope_offset.py` as a second launch of the
   existing `launch_rope` over a padded `[1, pos+1, …]` scratch tensor. This is correct but wasteful;
   measure and report its cost.
+
+## 8. Scope, priorities and decisions (2026-11-13)
+
+Deadline: report and video due 20 Nov 2026; the individual review is due 30 Nov. The full scope
+stays specified, but work runs in priority order. A lower tier starts only once the tier above is
+safe.
+
+| Tier | Item | Why |
+|------|------|-----|
+| P0 | HW1 kernels pass `make test` and `./run.sh` on a pinned 2080 Ti | V1 and V2 run on them; the four guide answers need their numbers |
+| P0 | V1 vs V2 on practice + dev: latency, `prefill_ms`, per-step ms, bit-identity | Main result (exact optimisation) |
+| P0 | V3 at m0, m2, b10 on practice + dev: latency, match %, WER vs V1, Recall@10/MRR/NDCG | Quality–cost trade-off |
+| P0 | Cost model predictions committed before measuring (G4) | Analysis criterion |
+| P1 | RoPE `launch_rope_at` vs padded scratch (`FAST_ASR_ROPE`), decode ms/step | Cheap extra row, already built |
+| P1 | Repeat pass on the 50-query subset; paired bootstrap CIs | Rigour |
+| P1 | HW1 Try-this sweeps: T3 `TILE` at M = 1, T4 `ATTN_WARPS` at seq_q = 1 | Feeds the discussion |
+| P2 | V3 m1, m5; V2-torch on a 50-query subset | Fuller curve; cuBLAS contrast |
+| P2 | ELM generation + judge on changed-transcript subset (§10) | Only if the key arrives by 16 Nov |
+| P2 | T1/T2 Try-this sweeps | Optional per forum |
+
+Decisions taken with the user:
+- D1. Claude writes the HW1 kernel blanks (the course policy allows AI use; disclose it on the
+  declaration page). The kernels were syntax-checked locally with clang CUDA. Correctness is
+  proved on the cluster by `make test`.
+- D2. `launch_rope_at` is built and used by V2 by default. The padded-scratch fallback is kept
+  and measured (P1). Rationale: per-step work becomes constant instead of growing with position.
+- D3. `prefill_ms` is timed separately. `ms_per_token` = (decode_ms − prefill_ms) / (n_tokens − 1),
+  counting decode steps only, so V2 is compared directly with the 8.8 ms weight-bandwidth floor.
+- D4. Timing runs only on the pinned GPU. Retrieval scoring runs on the local CPU from cached
+  transcripts (forum #42). It is deterministic given a transcript, and the report states both
+  machines and the timing boundary.
+- D5. The four guide answers go in an appendix, with a pointer in the introduction. The main body
+  keeps one paragraph of key `make test`/profile numbers and the GPU name.
+- D6. GPU tests run first with `FAST_ASR_TEST_CUDA=none` (PyTorch path), so V2/V3 logic is
+  debugged independently of kernel bugs.
+- D7. Video final two minutes (provisional; re-evaluate once results exist):
+  - Design choice: KV caching, an exact optimisation chosen over approximate ones.
+  - Checking: the V1/V2 bit-identity test, with the RoPE-offset bug as the example it catches.
+  - Alternatives to reconsider:
+    - The trimming rule that never cuts audio, if V3 turns out to be the larger result.
+    - The cost-model prediction-vs-measurement check.
+
+## 9. Considered, not built
+
+Recorded for the report's Discussion / Future work. None is built in this coursework (decision
+2026-11-13).
+
+| Idea | Expected gain | Why not built | Cost if we are wrong |
+|------|---------------|---------------|----------------------|
+| CUDA Graphs for the decode step | Removes ≈ 300 kernel-launch overheads per token (≈ 28 layers × ~11 ops), likely several ms/step at M = 1 | Sequence length (and attention `seq_k`) changes every step, so the graph needs re-capture or padded static shapes; ctypes launches complicate capture; high risk in 7 days | V2 reported slower than achievable; noted as the next step, with measured launch count × per-launch overhead as the estimate |
+| Split-K decode attention (seq_q = 1) | Raises occupancy from 16 blocks / 1 active warp | Attention is a small share of decode once it is weight-bandwidth-bound; measure the share first | Missed speed-up bounded by attention's measured share of `ms_per_token` |
+| FP16 / BF16 weights | About halves the weight-bandwidth floor (≈ 4.4 ms/token) | Not exact: breaks the V2 = V1 bit-identity claim; changes kernel input types (forum #33 forbids changing inputs) | None for correctness; a larger speed-up left on the table, stated with the bandwidth arithmetic |
+| VAD-based per-clip trimming | Tighter T' than real length + margin | Needs an extra model; the real-length rule (from the processor's mask) already never cuts audio | V3 slightly less aggressive than possible |
+| Dedicated M = 1 GEMV kernel (V2g, §4.1) | Better bandwidth than tiled GEMM wasting TILE − 1 rows | Kept optional; changes kernel structure beyond the investigation's exact algorithmic change | Discussed with the T3 `TILE` at M = 1 measurement |
+| Batching several queries | Amortises weight reads across queries | Interactive single-query latency is the system's use case; changes the timing boundary | Throughput angle left for future work |
+
+## 10. ELM component plan (planned now, run only if the key arrives by 16 Nov)
+
+The core results need no ELM. The ELM adds an end-to-end answer-quality check for V3 settings
+whose transcripts differ from V1.
+
+1. Key handling: `ELM_API_KEY` goes only in `rag/.env` (gitignored) on the machine that runs
+   generation. It never goes in chat, code, commits, the report or the video.
+2. Readiness: run `python rag/scripts/check_setup.py`, then
+   `evaluate_answers.py --dry-run --allow-subset` on a 5-row sample. Both send no requests.
+3. Smoke test, about 20 requests:
+   - Run `generate_answers.py --split practice --limit 5` into a fresh file.
+   - Run `evaluate_answers.py` on those 5 rows (judge `--repeats 2`).
+4. Subset selection: `rag/extensions/analysis/select_ids.py` on dev. Take the IDs where the V3-m0
+   (then m2) transcript differs from V1, plus 20 unchanged controls (seed 0).
+5. Candidates: `generate_from_cache.py` with question = V1 transcript, answer generated from the
+   variant transcript. Run the supplied judge unchanged.
+6. Budget: ≤ 600 requests in total. Each judged row costs 1 generation + 2 judge calls. Reserve
+   about 150 for reruns. If the changed subset is too big, cap it at 60 rows per variant, sampled
+   with seed 0, and say so.
+7. Report: one small table of judge scores (correctness, grounding, completeness, normalised
+   /12) for V1 vs V3 on the subset, with paired differences. If there is no key, the report states
+   that the ELM check was planned and not run, and why.
