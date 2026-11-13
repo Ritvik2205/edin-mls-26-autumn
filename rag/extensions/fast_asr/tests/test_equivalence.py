@@ -1,5 +1,6 @@
 """V1 recompute vs supplied generate, V2 KV cache vs V1, V3 trimming invariants (GPU)."""
 import json
+import os
 import unittest
 from pathlib import Path
 
@@ -8,6 +9,10 @@ from extensions.fast_asr.tests.gpu import requires_gpu
 REPO = Path(__file__).resolve().parents[4]
 TEST_WAV = REPO / "hw1-asr" / "test_audio.wav"
 CORPUS = REPO / "rag" / "data" / "rag_corpus"
+# Kernel groups the tests run on. "all" = the student kernels (default). Set
+# FAST_ASR_TEST_CUDA=none to debug the V2/V3 logic on the PyTorch path before the kernels
+# are finished, or e.g. "task1,task2" while only some tasks pass.
+GROUPS = os.environ.get("FAST_ASR_TEST_CUDA", "all")
 
 
 def longest_practice_clip() -> Path:
@@ -25,14 +30,14 @@ class EquivalenceTests(unittest.TestCase):
         from extensions.fast_asr.audio import read_audio
         from glm_asr_cuda import ops
         cls.torch, cls.ops, cls.real_frames = torch, ops, real_frames
-        ops.set_cuda_groups("all")
+        ops.set_cuda_groups(GROUPS)
         cls.fast, cls.processor = load_fast()
         cls.base = cls.fast.base
         cls.inp = prepare_inputs(cls.processor, read_audio(TEST_WAV))
         cls.inp.pop("feat_ms")
 
     def tearDown(self):
-        self.ops.set_cuda_groups("all")
+        self.ops.set_cuda_groups(GROUPS)
 
     # ---- Task 8: V1 instrumented recompute ----
     def test_recompute_equals_supplied_generate(self):
@@ -46,6 +51,8 @@ class EquivalenceTests(unittest.TestCase):
 
     # ---- Task 9: V2 KV cache ----
     def test_kv_bit_identical_on_student_kernels(self):
+        if GROUPS != "all":
+            self.skipTest("bit-identity is a claim about the student kernels (GROUPS=all)")
         a = self.fast.generate_recompute(**self.inp)
         b = self.fast.generate_kv(**self.inp)
         self.assertEqual(b.tokens, a.tokens)
@@ -57,6 +64,11 @@ class EquivalenceTests(unittest.TestCase):
         b = self.fast.generate_kv(**self.inp)
         self.assertEqual(b.tokens, a.tokens)
         self.assertLess(max(abs(x - y) for x, y in zip(a.probs, b.probs)), 1e-4)
+
+    def test_prefill_inside_decode(self):
+        for r in (self.fast.generate_recompute(**self.inp), self.fast.generate_kv(**self.inp)):
+            self.assertGreater(r.prefill_ms, 0)
+            self.assertLess(r.prefill_ms, r.decode_ms)
 
     def test_kv_max_new_tokens_boundary(self):
         a = self.fast.generate_recompute(**self.inp, max_new_tokens=3)

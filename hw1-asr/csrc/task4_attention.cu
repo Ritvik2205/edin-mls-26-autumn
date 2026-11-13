@@ -53,7 +53,7 @@ __global__ void attention_kernel(const float* q, const float* k, const float* v,
   // ======================== BLANK 4.1 =========================
   // Set kv_h, the K/V head that query head h reads (GQA: groups of consecutive
   // query heads share one K/V head).
-  // YOUR CODE HERE
+  kv_h = h / (num_heads / num_kv_heads);  // e.g. 16 q heads / 4 kv heads: heads 0-3 -> 0
   // ============================================================
 
   const size_t q_stride = static_cast<size_t>(num_heads) * head_dim;      // token to token in q, out
@@ -89,25 +89,55 @@ __global__ void attention_kernel(const float* q, const float* k, const float* v,
     // Copy keys and values j0 .. j0+KV_TILE-1 of this head into k_tile (rows of
     // k_pitch floats) and v_tile (rows of head_dim floats), with 0 for keys past
     // seq_k. All threads of the block take part.
-    // YOUR CODE HERE
+    for (int e = threadIdx.x; e < KV_TILE * head_dim; e += blockDim.x) {
+      const int r = e / head_dim;  // key within the tile
+      const int d = e % head_dim;  // consecutive threads -> consecutive d: coalesced
+      const int j = j0 + r;
+      const size_t off = static_cast<size_t>(j) * kv_stride + d;
+      k_tile[r * k_pitch + d] = (j < seq_k) ? k_head[off] : 0.0f;
+      v_tile[r * head_dim + d] = (j < seq_k) ? v_head[off] : 0.0f;
+    }
+    __syncthreads();  // tile complete before any warp scores it
     // ============================================================
 
     float s = -INFINITY;  // this lane's score for key j0 + lane
     // ======================== BLANK 4.3 =========================
     // Set s to this query's score for key j0 + lane, if the query may see that
     // key (last_key).
-    // YOUR CODE HERE
+    if (j0 + lane <= last_key) {  // last_key <= seq_k - 1, so this also excludes padding
+      const float* kr = k_tile + lane * k_pitch;  // pitch head_dim+1: lanes hit different banks
+      float dot = 0.0f;
+      for (int d = 0; d < head_dim; ++d) dot += qv[d] * kr[d];  // qv already holds q * scale
+      s = dot;
+    }
     // ============================================================
 
     float p = 0.0f;  // this lane's exp(s - m_new): unnormalised probability of key j0 + lane
     // ======================== BLANK 4.4 =========================
     // Update m, l and acc with this tile (guide, section 3) and set p.
-    // YOUR CODE HERE
+    {
+      const float m_new = fmaxf(m, warp_reduce_max(s));  // warp-uniform
+      if (m_new != -INFINITY) {  // otherwise nothing visible yet: keep m, l, acc; p stays 0
+        const float corr = expf(m - m_new);  // m == -inf gives 0, l and acc are 0 anyway
+        p = expf(s - m_new);                 // s == -inf gives 0: masked key
+        l = l * corr + warp_reduce_sum(p);
+#pragma unroll
+        for (int t = 0; t < MAX_DIMS_PER_LANE; ++t) acc[t] *= corr;
+        m = m_new;
+      }
+    }
     // ============================================================
 
     // ======================== BLANK 4.5 =========================
     // Add this tile's values, weighted by p, to acc.
-    // YOUR CODE HERE
+    // p of key j0 + r lives in lane r; broadcast it to the whole warp, one key at a time.
+    for (int r = 0; r < KV_TILE; ++r) {
+      const float pr = __shfl_sync(FULL_MASK, p, r);
+      const float* vr = v_tile + r * head_dim;
+#pragma unroll
+      for (int t = 0; t < MAX_DIMS_PER_LANE; ++t)
+        if (t < dims) acc[t] += pr * vr[lane + t * WARP_SIZE];
+    }
     // ============================================================
 
     __syncthreads();  // all warps are done with this tile before the next one overwrites it
@@ -115,7 +145,13 @@ __global__ void attention_kernel(const float* q, const float* k, const float* v,
 
   // ======================== BLANK 4.6 =========================
   // Write acc / l to out for this warp's query.
-  // YOUR CODE HERE
+  if (active) {
+    float* o = out + (static_cast<size_t>(b) * seq_q + qi) * q_stride + h * head_dim;
+    const float inv_l = 1.0f / l;  // l >= 1: key 0 is always visible to an active query
+#pragma unroll
+    for (int t = 0; t < MAX_DIMS_PER_LANE; ++t)
+      if (t < dims) o[lane + t * WARP_SIZE] = acc[t] * inv_l;
+  }
   // ============================================================
 }
 

@@ -25,7 +25,7 @@ if __package__ in (None, ""):
 from extensions.analysis.textmetrics import wer  # noqa: E402
 
 NUMERIC = {"pass", "duration_s", "real_frames", "enc_frames", "prompt_len", "n_tokens", "feat_ms",
-           "encode_ms", "decode_ms", "asr_ms", "ms_per_token", "peak_mem_bytes", "kv_bytes", "empty"}
+           "encode_ms", "prefill_ms", "decode_ms", "asr_ms", "ms_per_token", "peak_mem_bytes", "kv_bytes", "empty"}
 REPO = Path(__file__).resolve().parents[3]
 
 
@@ -81,6 +81,7 @@ def variant_table(rows) -> list[dict]:
         t = {"variant": variant, "setting": setting, "n": len(rs),
              "asr_ms": stats([r["asr_ms"] for r in rs]),
              "encode_ms": stats([r["encode_ms"] for r in rs]),
+             "prefill_ms": stats([r["prefill_ms"] for r in rs]),
              "decode_ms": stats([r["decode_ms"] for r in rs]),
              "ms_per_token": stats([r["ms_per_token"] for r in rs]),
              "peak_gib": max(r["peak_mem_bytes"] for r in rs) / 2**30,

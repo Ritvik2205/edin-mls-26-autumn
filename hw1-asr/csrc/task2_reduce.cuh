@@ -16,7 +16,7 @@ __device__ __forceinline__ float warp_reduce_sum(float v) {
   for (int offset = WARP_SIZE / 2; offset > 0; offset /= 2) {
     // ======================== BLANK 2.1 =========================
     // One step of the butterfly sum (see the guide).
-    // YOUR CODE HERE
+    v += __shfl_xor_sync(FULL_MASK, v, offset);
     // ============================================================
   }
   return v;
@@ -27,7 +27,7 @@ __device__ __forceinline__ float warp_reduce_max(float v) {
   for (int offset = WARP_SIZE / 2; offset > 0; offset /= 2) {
     // ======================== BLANK 2.2 =========================
     // The same for the maximum.
-    // YOUR CODE HERE
+    v = fmaxf(v, __shfl_xor_sync(FULL_MASK, v, offset));
     // ============================================================
   }
   return v;
@@ -60,7 +60,12 @@ __device__ __forceinline__ float block_reduce_max(float v) {
 
   // ======================== BLANK 2.3 =========================
   // Block-wide maximum, built like block_reduce_sum above.
-  // YOUR CODE HERE
+  v = warp_reduce_max(v);            // 1. each warp: max of its 32 values
+  if (lane == 0) partial[warp] = v;  // 2. lane 0 stores the warp's max
+  __syncthreads();
+  v = (lane < num_warps) ? partial[lane] : -INFINITY;  // 3. identity of max is -inf
+  v = warp_reduce_max(v);
+  __syncthreads();                   // 4. partial[] may be reused by the next call
   // ============================================================
   return v;
 }
@@ -81,7 +86,9 @@ __device__ __forceinline__ MaxSum maxsum_merge(MaxSum a, MaxSum b) {
   // ======================== BLANK 2.4 =========================
   // Merge a and b with the rule in the guide. Merging two empty summaries
   // ({-INFINITY, 0}) must give an empty summary, not NaN.
-  // YOUR CODE HERE
+  r.m = fmaxf(a.m, b.m);
+  if (r.m == -INFINITY) return r;  // both empty: exp(-inf - -inf) would be NaN
+  r.l = a.l * expf(a.m - r.m) + b.l * expf(b.m - r.m);  // an empty side adds 0 * 0
   // ============================================================
   return r;
 }

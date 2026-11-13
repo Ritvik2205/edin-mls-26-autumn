@@ -46,7 +46,7 @@ def main():
             request = json.loads(line)
             with redirect_stdout(sys.stderr):
                 m = tr.transcribe({"path": request["audio_path"]})
-            timing = {k: m[k] for k in ("feat_ms", "encode_ms", "decode_ms", "n_tokens", "enc_frames")}
+            timing = {k: m[k] for k in ("feat_ms", "encode_ms", "prefill_ms", "decode_ms", "n_tokens", "enc_frames")}
             response = {"transcript": m["transcript"], "timing": timing}
         except Exception as exc:
             response = {"error": str(exc)}

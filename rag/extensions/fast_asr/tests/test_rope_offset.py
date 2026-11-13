@@ -44,6 +44,35 @@ class RopeOffsetTests(unittest.TestCase):
         self.assertTrue(self.torch.equal(k[..., 32:], k0[..., 32:]))
         self.assertFalse(self.torch.equal(q[..., :32], q0[..., :32]))
 
+    def test_kernel_and_scratch_paths_bitwise_equal(self):
+        if "rope" not in self.ops.USE_CUDA:
+            self.skipTest("launch_rope_at is a CUDA path; rope group is on PyTorch")
+        for P in (1, 58, 144):
+            q, k = self.rand(1, 16), self.rand(1, 4)
+            q2, k2 = q.clone(), k.clone()
+            self.rope_at_(q, k, self.freq, self.rdim, P, impl="kernel")
+            self.rope_at_(q2, k2, self.freq, self.rdim, P, impl="scratch")
+            self.assertTrue(self.torch.equal(q, q2) and self.torch.equal(k, k2), P)
+
+    def test_unknown_impl_rejected(self):
+        q, k = self.rand(1, 16), self.rand(1, 4)
+        with self.assertRaises(ValueError):
+            self.rope_at_(q, k, self.freq, self.rdim, 3, impl="fast")
+
+
+class RopeImplChoiceTests(unittest.TestCase):
+    """No GPU needed: which RoPE path is chosen."""
+
+    def test_choice(self):
+        from extensions.fast_asr.rope_offset import choose_impl
+        self.assertEqual(choose_impl(None, rope_on_cuda=True, has_symbol=True, env=None), "kernel")
+        self.assertEqual(choose_impl(None, rope_on_cuda=True, has_symbol=False, env=None), "scratch")
+        self.assertEqual(choose_impl(None, rope_on_cuda=False, has_symbol=True, env=None), "scratch")
+        self.assertEqual(choose_impl(None, rope_on_cuda=True, has_symbol=True, env="scratch"), "scratch")
+        self.assertEqual(choose_impl("scratch", rope_on_cuda=True, has_symbol=True, env="kernel"), "scratch")
+        with self.assertRaises(ValueError):
+            choose_impl("kernel", rope_on_cuda=False, has_symbol=True, env=None)
+
 
 if __name__ == "__main__":
     unittest.main()

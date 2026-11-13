@@ -42,7 +42,10 @@ __global__ void rmsnorm_kernel(const float* x, const float* weight, float* y, in
 
   // ======================== BLANK 2.5 =========================
   // RMSNorm of this row: y = x / sqrt(mean(x^2) + eps) * weight.
-  // YOUR CODE HERE
+  float sq = 0.0f;
+  for (int c = threadIdx.x; c < cols; c += blockDim.x) sq += xr[c] * xr[c];
+  const float rrms = rsqrtf(block_reduce_sum(sq) / cols + eps);  // 1 / sqrt(mean(x^2) + eps)
+  for (int c = threadIdx.x; c < cols; c += blockDim.x) yr[c] = xr[c] * rrms * weight[c];
   // ============================================================
 }
 
@@ -58,12 +61,26 @@ __global__ void softmax_kernel(const float* x, float* y, int cols) {
   // ======================== BLANK 2.6 =========================
   // Pass 1: set row_max and row_sum (the sum of exp(x - row_max) over the row),
   // reading x only once, with MaxSum.
-  // YOUR CODE HERE
+  // Each thread keeps a running MaxSum of its columns: one read of x, one expf each.
+  MaxSum t = {-INFINITY, 0.0f};
+  for (int c = threadIdx.x; c < cols; c += blockDim.x) {
+    const float xv = xr[c];
+    if (xv > t.m) {
+      t.l = t.l * expf(t.m - xv) + 1.0f;  // rescale the old sum to the new max
+      t.m = xv;
+    } else if (xv != -INFINITY) {  // -inf adds 0; skipping it avoids exp(-inf - -inf) = NaN
+      t.l += expf(xv - t.m);
+    }
+  }
+  // Merge the per-thread summaries: the block max, then every sum rescaled to it.
+  row_max = block_reduce_max(t.m);
+  row_sum = block_reduce_sum(t.l == 0.0f ? 0.0f : t.l * expf(t.m - row_max));
   // ============================================================
 
   // ======================== BLANK 2.7 =========================
   // Pass 2: y = exp(x - row_max) / row_sum.
-  // YOUR CODE HERE
+  const float inv_sum = 1.0f / row_sum;
+  for (int c = threadIdx.x; c < cols; c += blockDim.x) yr[c] = expf(xr[c] - row_max) * inv_sum;
   // ============================================================
 }
 

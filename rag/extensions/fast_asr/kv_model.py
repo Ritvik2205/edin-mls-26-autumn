@@ -31,6 +31,7 @@ class GenResult:
     prompt_len: int
     enc_frames: int
     kv_bytes: int = 0
+    prefill_ms: float = 0.0  # part of decode_ms: prompt splice, (cache alloc,) prompt pass, token 1
 
 
 @dataclass
@@ -116,11 +117,14 @@ class FastGlmAsr:
         with _Timer() as enc:
             audio = b.encode_audio(features, features_mask)
         with _Timer() as dec:
-            embeds = self._prompt(audio, input_ids)
-            prompt_len = embeds.shape[1]
-            tokens, probs = [], []
-            for _ in range(max_new_tokens):
+            with _Timer() as pre:
+                embeds = self._prompt(audio, input_ids)
+                prompt_len = embeds.shape[1]
                 p = b.next_token_probs(embeds)
+            tokens, probs = [], []
+            for step in range(max_new_tokens):
+                if step > 0:
+                    p = b.next_token_probs(embeds)
                 best = torch.argmax(p, dim=-1)
                 tokens.append(int(best[0]))
                 probs.append(float(p[0, best[0]]))
@@ -128,7 +132,8 @@ class FastGlmAsr:
                     break
                 embeds = torch.cat([embeds, self._embed_token(best)], dim=1)
         torch.cuda.synchronize()
-        return GenResult(tokens, probs, enc.ms, dec.ms, prompt_len, features.shape[-1])
+        return GenResult(tokens, probs, enc.ms, dec.ms, prompt_len, features.shape[-1],
+                         prefill_ms=pre.ms)
 
     # ---------------- V2 / V3 ----------------
 
@@ -173,11 +178,12 @@ class FastGlmAsr:
         with _Timer() as enc:
             audio = b.encode_audio(features, features_mask)
         with _Timer() as dec:
-            embeds = self._prompt(audio, input_ids)
-            P = embeds.shape[1]
-            cache = KVCache.allocate(b.c.text_layers, P + max_new_tokens, b.c.text_kv_heads,
-                                     b.text_head_dim, embeds.device)
-            p = self._head(self._decoder_kv(embeds, cache, 0))  # prefill
+            with _Timer() as pre:
+                embeds = self._prompt(audio, input_ids)
+                P = embeds.shape[1]
+                cache = KVCache.allocate(b.c.text_layers, P + max_new_tokens, b.c.text_kv_heads,
+                                         b.text_head_dim, embeds.device)
+                p = self._head(self._decoder_kv(embeds, cache, 0))  # prefill
             tokens, probs = [], []
             for step in range(max_new_tokens):
                 best = torch.argmax(p, dim=-1)
@@ -187,7 +193,8 @@ class FastGlmAsr:
                     break
                 p = self._head(self._decoder_kv(self._embed_token(best), cache, P + step))
         torch.cuda.synchronize()
-        return GenResult(tokens, probs, enc.ms, dec.ms, P, features.shape[-1], cache.nbytes)
+        return GenResult(tokens, probs, enc.ms, dec.ms, P, features.shape[-1], cache.nbytes,
+                         prefill_ms=pre.ms)
 
 
 def use_cache_if_present():

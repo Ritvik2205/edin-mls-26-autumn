@@ -21,7 +21,7 @@ class FakeTranscriber:
         self.calls.append(item["query_id"])
         text = "" if item["query_id"] in self.empty_ids else f"text {item['query_id']}"
         return {"duration_s": item["duration_seconds"], "real_frames": 500, "enc_frames": 3000,
-                "prompt_len": 59, "n_tokens": 4, "feat_ms": 1.0, "encode_ms": 10.0, "decode_ms": 20.0,
+                "prompt_len": 59, "n_tokens": 4, "feat_ms": 1.0, "encode_ms": 10.0, "prefill_ms": 8.0, "decode_ms": 20.0,
                 "peak_mem_bytes": 123, "kv_bytes": 0, "transcript": text}
 
 
@@ -32,6 +32,14 @@ def items(n):
 def read_rows(path):
     with open(path, newline="", encoding="utf-8") as f:
         return list(csv.DictReader(f))
+
+
+class StepTimeTests(unittest.TestCase):
+    def test_step_ms(self):
+        from extensions.fast_asr.bench_asr import step_ms
+        self.assertEqual(step_ms(decode_ms=20.0, prefill_ms=8.0, n_tokens=4), 4.0)
+        self.assertEqual(step_ms(decode_ms=9.0, prefill_ms=8.0, n_tokens=1), 0.0)  # no steps after prefill
+        self.assertEqual(step_ms(decode_ms=9.0, prefill_ms=8.0, n_tokens=0), 0.0)
 
 
 class BenchTests(unittest.TestCase):
@@ -54,7 +62,9 @@ class BenchTests(unittest.TestCase):
         rows = read_rows(self.csv)
         self.assertEqual([r["query_id"] for r in rows], ["q0", "q1", "q2"])
         self.assertEqual(rows[0]["asr_ms"], "31.0")
-        self.assertEqual(rows[0]["ms_per_token"], "5.0")
+        self.assertEqual(rows[0]["prefill_ms"], "8.0")
+        # decode steps only: (decode 20 - prefill 8) / (4 tokens - 1 from prefill)
+        self.assertEqual(rows[0]["ms_per_token"], "4.0")
         self.assertEqual(rows[0]["gpu"], "FakeGPU")
         self.assertEqual(len(read_cache(self.cache)), 3)
 

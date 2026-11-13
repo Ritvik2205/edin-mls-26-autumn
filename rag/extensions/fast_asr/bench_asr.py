@@ -7,6 +7,9 @@ Run in the mls-asr env on a GPU node, from the repository root:
         --out-csv results/asr/practice_v2.csv --cache rag/.cache/practice_v2.jsonl
 
 Timing boundary: warm model; asr_ms = feat_ms (CPU mel) + encode_ms + decode_ms (CUDA events).
+decode_ms includes prefill_ms (prompt splice, cache allocation, prompt pass, first token).
+ms_per_token = step_ms(): decode steps after the first token only, so V1 and V2 per-step
+costs compare like for like and V2 meets the weight-bandwidth floor directly.
 Model load is excluded and printed once. Re-running the same command resumes.
 """
 from __future__ import annotations
@@ -27,7 +30,7 @@ from extensions.fast_asr.cachefile import append_cache, read_cache  # noqa: E402
 
 COLUMNS = ["query_id", "split", "variant", "setting", "cuda", "gpu", "node", "commit", "pass",
            "duration_s", "real_frames", "enc_frames", "prompt_len", "n_tokens", "feat_ms",
-           "encode_ms", "decode_ms", "asr_ms", "ms_per_token", "peak_mem_bytes", "kv_bytes",
+           "encode_ms", "prefill_ms", "decode_ms", "asr_ms", "ms_per_token", "peak_mem_bytes", "kv_bytes",
            "empty", "transcript"]
 REPO = Path(__file__).resolve().parents[3]
 CORPUS = REPO / "rag" / "data" / "rag_corpus"
@@ -41,6 +44,12 @@ def _existing(out_csv: Path) -> list[dict]:
         return []
     with out_csv.open(newline="", encoding="utf-8") as f:
         return list(csv.DictReader(f))
+
+
+def step_ms(decode_ms: float, prefill_ms: float, n_tokens: int) -> float:
+    """Mean time of one decode step after the first token (the prefill produces token 1)."""
+    steps = n_tokens - 1
+    return (decode_ms - prefill_ms) / steps if steps > 0 else 0.0
 
 
 def run_bench(model, items, variant, setting, out_csv, cache_path, warmup, repeat_ids, meta) -> int:
@@ -85,7 +94,7 @@ def run_bench(model, items, variant, setting, out_csv, cache_path, warmup, repea
             row = {**meta, **{k: m[k] for k in m if k in COLUMNS},
                    "query_id": qid, "variant": variant, "setting": setting, "pass": p,
                    "asr_ms": round(asr_ms, 3),
-                   "ms_per_token": round(m["decode_ms"] / max(m["n_tokens"], 1), 3),
+                   "ms_per_token": round(step_ms(m["decode_ms"], m["prefill_ms"], m["n_tokens"]), 3),
                    "empty": int(not m["transcript"].strip())}
             if qid not in cache:  # cache first, so a kill between the two never leaves a cache hole
                 append_cache(cache_path, qid, m["transcript"])
@@ -130,7 +139,8 @@ class GpuTranscriber:
         text = self.processor.tokenizer.decode(r.tokens, skip_special_tokens=True).strip()
         return {"duration_s": round(len(audio) / 16000, 3), "real_frames": rf, "enc_frames": r.enc_frames,
                 "prompt_len": r.prompt_len, "n_tokens": len(r.tokens), "feat_ms": round(feat_ms, 3),
-                "encode_ms": round(r.encode_ms, 3), "decode_ms": round(r.decode_ms, 3),
+                "encode_ms": round(r.encode_ms, 3), "prefill_ms": round(r.prefill_ms, 3),
+                "decode_ms": round(r.decode_ms, 3),
                 "peak_mem_bytes": self.torch.cuda.max_memory_allocated(), "kv_bytes": r.kv_bytes,
                 "transcript": text}
 
