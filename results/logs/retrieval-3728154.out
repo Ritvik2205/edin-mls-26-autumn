@@ -1,0 +1,53 @@
+node: opencast.inf.ed.ac.uk  cpus: 4
+Model name:                              Intel(R) Xeon(R) CPU E5-2620 v4 @ 2.10GHz
+e6f04ed scripts: CPU retrieval-scoring sbatch for cached transcripts
+=== v1 (350 cached transcripts)
+exit 0
+
+Aggregate:
+  Recall@5   0.421337
+  Recall@10  0.479594
+  Recall@20  0.578524
+  Recall@100 0.769856
+  MRR@10     0.488746
+  NDCG@10    0.420461
+=== v2 (350 cached transcripts)
+exit 0
+
+Aggregate:
+  Recall@5   0.421337
+  Recall@10  0.479594
+  Recall@20  0.578524
+  Recall@100 0.769856
+  MRR@10     0.488746
+  NDCG@10    0.420461
+=== v3_m0 (350 cached transcripts)
+exit 0
+
+Aggregate:
+  Recall@5   0.426909
+  Recall@10  0.483165
+  Recall@20  0.586238
+  Recall@100 0.775876
+  MRR@10     0.493858
+  NDCG@10    0.425255
+=== v3_m2 (350 cached transcripts)
+exit 0
+
+Aggregate:
+  Recall@5   0.421194
+  Recall@10  0.477451
+  Recall@20  0.580524
+  Recall@100 0.769448
+  MRR@10     0.491025
+  NDCG@10    0.421230
+=== v3_b10 (350 cached transcripts)
+exit 0
+
+Aggregate:
+  Recall@5   0.423480
+  Recall@10  0.483165
+  Recall@20  0.582809
+  Recall@100 0.772305
+  MRR@10     0.490179
+  NDCG@10    0.422047

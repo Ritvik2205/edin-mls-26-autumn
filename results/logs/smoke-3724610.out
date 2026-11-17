@@ -1,0 +1,59 @@
+node: opencast.inf.ed.ac.uk
+GPU 0: NVIDIA GeForce RTX 2080 Ti (UUID: GPU-750577fe-6fbb-22de-ec80-ae5e08da1f2f)
+f9f1ab3 scripts: bench and smoke/RoPE sbatch wrappers (setup steps 6b, 7)
+make: Entering directory '~/edin-mls-26-autumn/hw1-asr'
+make: Nothing to be done for 'lib'.
+make: Leaving directory '~/edin-mls-26-autumn/hw1-asr'
+=== smoke v2
+Model loaded in 78.7 s (excluded from timings)
+[v2/full p0] q_7e9a0f2716c017d2 asr=2329.7 ms tokens=14
+[v2/full p0] q_ea0be00eda6ea088 asr=2271.3 ms tokens=13
+[v2/full p0] q_9cd791a970ab648f asr=2274.5 ms tokens=13
+Wrote 3 rows to results/asr/smoke_v2.csv
+=== rope scratch
+Model loaded in 26.5 s (excluded from timings)
+[v2/full p0] q_7e9a0f2716c017d2 asr=2349.9 ms tokens=14
+[v2/full p0] q_ea0be00eda6ea088 asr=2293.1 ms tokens=13
+[v2/full p0] q_9cd791a970ab648f asr=2287.6 ms tokens=13
+[v2/full p0] q_20e98c45013f6cc6 asr=2362.5 ms tokens=15
+[v2/full p0] q_e3f1cef46917a2a5 asr=2504.5 ms tokens=17
+[v2/full p0] q_fb7201191b7c1c3f asr=2400.3 ms tokens=15
+[v2/full p0] q_985b83cdba7c6114 asr=2296.9 ms tokens=13
+[v2/full p0] q_cc3a5798107d54ab asr=2399.1 ms tokens=15
+[v2/full p0] q_11e91c6525c562e4 asr=2402.8 ms tokens=15
+[v2/full p0] q_310adf9926fe489e asr=2745.2 ms tokens=23
+[v2/full p0] q_a02dccd42055bf0e asr=2644.8 ms tokens=21
+[v2/full p0] q_d1397ae30111620c asr=2273.3 ms tokens=12
+[v2/full p0] q_0c244d4030fd08ec asr=2307.1 ms tokens=13
+[v2/full p0] q_14e2672fdc01cc05 asr=2451.1 ms tokens=16
+[v2/full p0] q_92cf5957e0e552dc asr=2270.2 ms tokens=12
+[v2/full p0] q_820ebb1208f655e4 asr=2279.0 ms tokens=13
+[v2/full p0] q_21c248ae5ae43fbc asr=2202.1 ms tokens=11
+[v2/full p0] q_558c8ea82bc79173 asr=2651.6 ms tokens=21
+[v2/full p0] q_d442a6395dbca951 asr=2531.6 ms tokens=18
+[v2/full p0] q_b1ab6d6caf82c83a asr=2394.6 ms tokens=15
+Wrote 20 rows to results/rope/practice_v2_rope_scratch.csv
+=== rope kernel
+Model loaded in 26.1 s (excluded from timings)
+[v2/full p0] q_7e9a0f2716c017d2 asr=2357.4 ms tokens=14
+[v2/full p0] q_ea0be00eda6ea088 asr=2295.0 ms tokens=13
+[v2/full p0] q_9cd791a970ab648f asr=2299.0 ms tokens=13
+[v2/full p0] q_20e98c45013f6cc6 asr=2382.6 ms tokens=15
+[v2/full p0] q_e3f1cef46917a2a5 asr=2513.1 ms tokens=17
+[v2/full p0] q_fb7201191b7c1c3f asr=2406.0 ms tokens=15
+[v2/full p0] q_985b83cdba7c6114 asr=2304.6 ms tokens=13
+[v2/full p0] q_cc3a5798107d54ab asr=2406.4 ms tokens=15
+[v2/full p0] q_11e91c6525c562e4 asr=2409.4 ms tokens=15
+[v2/full p0] q_310adf9926fe489e asr=2749.4 ms tokens=23
+[v2/full p0] q_a02dccd42055bf0e asr=2645.2 ms tokens=21
+[v2/full p0] q_d1397ae30111620c asr=2271.3 ms tokens=12
+[v2/full p0] q_0c244d4030fd08ec asr=2310.6 ms tokens=13
+[v2/full p0] q_14e2672fdc01cc05 asr=2453.7 ms tokens=16
+[v2/full p0] q_92cf5957e0e552dc asr=2274.7 ms tokens=12
+[v2/full p0] q_820ebb1208f655e4 asr=2282.3 ms tokens=13
+[v2/full p0] q_21c248ae5ae43fbc asr=2206.3 ms tokens=11
+[v2/full p0] q_558c8ea82bc79173 asr=2651.0 ms tokens=21
+[v2/full p0] q_d442a6395dbca951 asr=2532.4 ms tokens=18
+[v2/full p0] q_b1ab6d6caf82c83a asr=2390.7 ms tokens=15
+Wrote 20 rows to results/rope/practice_v2_rope_kernel.csv
+=== done

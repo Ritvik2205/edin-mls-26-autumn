@@ -1,0 +1,25 @@
+node: damnii11.inf.ed.ac.uk
+GPU 0: NVIDIA GeForce RTX 2080 Ti (UUID: GPU-a22d3efa-5d08-21a6-37fe-9ac9e05f82c4)
+python: ~/miniconda3/envs/mls-asr/bin/python
+dc44796 report: LaTeX skeleton with cost-model predictions; answers in appendix per course announcement
+make: Entering directory '~/edin-mls-26-autumn/hw1-asr'
+make: Nothing to be done for 'lib'.
+make: Leaving directory '~/edin-mls-26-autumn/hw1-asr'
+
+=== ext_torch -> results/hw1/ext_tests_torch.txt
+
+----------------------------------------------------------------------
+Ran 48 tests in 95.340s
+
+OK (skipped=2)
+
+=== ext_cuda -> results/hw1/ext_tests_cuda.txt
+
+----------------------------------------------------------------------
+Ran 48 tests in 73.695s
+
+OK
+
+=== summary (0 = ok)
+ext_torch: 0
+ext_cuda: 0

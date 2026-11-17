@@ -1,0 +1,41 @@
+node: damnii12.inf.ed.ac.uk
+GPU 0: NVIDIA GeForce RTX 2080 Ti (UUID: GPU-29fb768d-dc6d-2291-2a3b-25edab770efb)
+python: ~/miniconda3/envs/mls-asr/bin/python
+dc44796 report: LaTeX skeleton with cost-model predictions; answers in appendix per course announcement
+make: Entering directory '~/edin-mls-26-autumn/hw1-asr'
+make: Nothing to be done for 'lib'.
+make: Leaving directory '~/edin-mls-26-autumn/hw1-asr'
+
+=== profile_cuda -> results/hw1/profile_cuda.txt
+Peak GPU memory: 8.56 GiB
+Transcription: Concord returned to its place amidst the tents.
+Expected:      Concord returned to its place amidst the tents
+Accuracy: 100.0%
+Status: PASS
+
+=== profile_torch -> results/hw1/profile_torch.txt
+Peak GPU memory: 8.88 GiB
+Transcription: Concord returned to its place amidst the tents.
+Expected:      Concord returned to its place amidst the tents
+Accuracy: 100.0%
+Status: PASS
+
+=== ext_torch -> results/hw1/ext_tests_torch.txt
+
+----------------------------------------------------------------------
+Ran 48 tests in 47.954s
+
+FAILED (errors=6, skipped=2)
+
+=== ext_cuda -> results/hw1/ext_tests_cuda.txt
+
+----------------------------------------------------------------------
+Ran 48 tests in 65.137s
+
+FAILED (errors=7)
+
+=== summary (0 = ok)
+profile_cuda: 0
+profile_torch: 0
+ext_torch: 1
+ext_cuda: 1
