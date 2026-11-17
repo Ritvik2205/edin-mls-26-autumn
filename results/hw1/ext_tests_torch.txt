@@ -1,0 +1,73 @@
+test_candidate_uses_v1_question (extensions.analysis.tests.test_candidates.CandidateTests.test_candidate_uses_v1_question) ... ok
+test_select_ids_deterministic_and_sorted (extensions.analysis.tests.test_candidates.CandidateTests.test_select_ids_deterministic_and_sorted) ... ok
+test_select_ids_differing_plus_controls (extensions.analysis.tests.test_candidates.CandidateTests.test_select_ids_differing_plus_controls) ... ok
+test_select_ids_ignores_ids_missing_from_either (extensions.analysis.tests.test_candidates.CandidateTests.test_select_ids_ignores_ids_missing_from_either) ... ok
+test_validates_with_supplied_checker (extensions.analysis.tests.test_candidates.CandidateTests.test_validates_with_supplied_checker) ... ok
+test_bootstrap_deterministic_and_brackets (extensions.analysis.tests.test_summarise.SummariseTests.test_bootstrap_deterministic_and_brackets) ... ok
+test_parse_retrieval (extensions.analysis.tests.test_summarise.SummariseTests.test_parse_retrieval) ... ok
+test_refuses_mixed_gpus (extensions.analysis.tests.test_summarise.SummariseTests.test_refuses_mixed_gpus) ... ok
+test_repeat_rows_excluded_from_main_stats (extensions.analysis.tests.test_summarise.SummariseTests.test_repeat_rows_excluded_from_main_stats) ... ok
+test_stats_percentiles (extensions.analysis.tests.test_summarise.SummariseTests.test_stats_percentiles) ... ok
+test_variant_table_match_rate_against_v1 (extensions.analysis.tests.test_summarise.SummariseTests.test_variant_table_match_rate_against_v1) ... ok
+test_empty_ref_nonempty_hyp (extensions.analysis.tests.test_textmetrics.TextMetricsTests.test_empty_ref_nonempty_hyp) ... ok
+test_wer (extensions.analysis.tests.test_textmetrics.TextMetricsTests.test_wer) ... ok
+test_word_errors_counts_insertions (extensions.analysis.tests.test_textmetrics.TextMetricsTests.test_word_errors_counts_insertions) ... ok
+test_fast_adapter_spawns_variant_worker (extensions.fast_asr.tests.test_adapter.FastAdapterTests.test_fast_adapter_spawns_variant_worker) ... ok
+test_rejects_bad_variant_flags (extensions.fast_asr.tests.test_adapter.FastAdapterTests.test_rejects_bad_variant_flags) ... ok
+test_pcm16_to_float (extensions.fast_asr.tests.test_audio.AudioTests.test_pcm16_to_float) ... ok
+test_rejects_wrong_rate_and_stereo (extensions.fast_asr.tests.test_audio.AudioTests.test_rejects_wrong_rate_and_stereo) ... ok
+test_empty_transcript_row (extensions.fast_asr.tests.test_bench.BenchTests.test_empty_transcript_row) ... [v2/full p0] q0 asr=31.0 ms tokens=4
+[v2/full p0] q1 asr=31.0 ms tokens=4
+[v2/full p0] q2 asr=31.0 ms tokens=4
+ok
+test_repeat_pass_rows (extensions.fast_asr.tests.test_bench.BenchTests.test_repeat_pass_rows) ... [v2/full p0] q0 asr=31.0 ms tokens=4
+[v2/full p0] q1 asr=31.0 ms tokens=4
+[v2/full p0] q2 asr=31.0 ms tokens=4
+[v2/full p1] q0 asr=31.0 ms tokens=4
+[v2/full p1] q2 asr=31.0 ms tokens=4
+ok
+test_resume_backfills_cache_from_csv (extensions.fast_asr.tests.test_bench.BenchTests.test_resume_backfills_cache_from_csv) ... [v2/full p0] q0 asr=31.0 ms tokens=4
+[v2/full p0] q1 asr=31.0 ms tokens=4
+ok
+test_resume_refuses_different_configuration (extensions.fast_asr.tests.test_bench.BenchTests.test_resume_refuses_different_configuration) ... [v2/full p0] q0 asr=31.0 ms tokens=4
+ok
+test_resume_skips_done (extensions.fast_asr.tests.test_bench.BenchTests.test_resume_skips_done) ... [v2/full p0] q0 asr=31.0 ms tokens=4
+[v2/full p0] q1 asr=31.0 ms tokens=4
+[v2/full p0] q2 asr=31.0 ms tokens=4
+ok
+test_warmup_rows_not_written (extensions.fast_asr.tests.test_bench.BenchTests.test_warmup_rows_not_written) ... [v2/full p0] q0 asr=31.0 ms tokens=4
+[v2/full p0] q1 asr=31.0 ms tokens=4
+[v2/full p0] q2 asr=31.0 ms tokens=4
+ok
+test_writes_one_row_per_query_and_cache (extensions.fast_asr.tests.test_bench.BenchTests.test_writes_one_row_per_query_and_cache) ... [v2/full p0] q0 asr=31.0 ms tokens=4
+[v2/full p0] q1 asr=31.0 ms tokens=4
+[v2/full p0] q2 asr=31.0 ms tokens=4
+ok
+test_step_ms (extensions.fast_asr.tests.test_bench.StepTimeTests.test_step_ms) ... ok
+test_cache_roundtrip_matches_evaluate_rag_format (extensions.fast_asr.tests.test_cachefile.CacheFileTests.test_cache_roundtrip_matches_evaluate_rag_format) ... ok
+test_missing_file_is_empty (extensions.fast_asr.tests.test_cachefile.CacheFileTests.test_missing_file_is_empty) ... ok
+test_full_length_equals_v2 (extensions.fast_asr.tests.test_equivalence.EquivalenceTests.test_full_length_equals_v2) ... ok
+test_kv_bit_identical_on_student_kernels (extensions.fast_asr.tests.test_equivalence.EquivalenceTests.test_kv_bit_identical_on_student_kernels) ... skipped 'bit-identity is a claim about the student kernels (GROUPS=all)'
+test_kv_bytes (extensions.fast_asr.tests.test_equivalence.EquivalenceTests.test_kv_bytes) ... ok
+test_kv_first_token_eos (extensions.fast_asr.tests.test_equivalence.EquivalenceTests.test_kv_first_token_eos) ... ok
+test_kv_max_new_tokens_boundary (extensions.fast_asr.tests.test_equivalence.EquivalenceTests.test_kv_max_new_tokens_boundary) ... ok
+test_kv_torch_path_close (extensions.fast_asr.tests.test_equivalence.EquivalenceTests.test_kv_torch_path_close) ... ok
+test_prefill_inside_decode (extensions.fast_asr.tests.test_equivalence.EquivalenceTests.test_prefill_inside_decode) ... ok
+test_prompt_len_unchanged_longest_clip (extensions.fast_asr.tests.test_equivalence.EquivalenceTests.test_prompt_len_unchanged_longest_clip) ... ok
+test_recompute_equals_supplied_generate (extensions.fast_asr.tests.test_equivalence.EquivalenceTests.test_recompute_equals_supplied_generate) ... ok
+test_rejects_cutting_real_audio (extensions.fast_asr.tests.test_equivalence.EquivalenceTests.test_rejects_cutting_real_audio) ... ok
+test_choice (extensions.fast_asr.tests.test_rope_offset.RopeImplChoiceTests.test_choice) ... ok
+test_audio_partial_rotary (extensions.fast_asr.tests.test_rope_offset.RopeOffsetTests.test_audio_partial_rotary) ... ok
+test_kernel_and_scratch_paths_bitwise_equal (extensions.fast_asr.tests.test_rope_offset.RopeOffsetTests.test_kernel_and_scratch_paths_bitwise_equal) ... skipped 'launch_rope_at is a CUDA path; rope group is on PyTorch'
+test_offset_matches_full_sequence_row (extensions.fast_asr.tests.test_rope_offset.RopeOffsetTests.test_offset_matches_full_sequence_row) ... ok
+test_offset_zero_bitwise_equals_launch_rope (extensions.fast_asr.tests.test_rope_offset.RopeOffsetTests.test_offset_zero_bitwise_equals_launch_rope) ... ok
+test_unknown_impl_rejected (extensions.fast_asr.tests.test_rope_offset.RopeOffsetTests.test_unknown_impl_rejected) ... ok
+test_bucket_never_truncates (extensions.fast_asr.tests.test_trim.TrimmedFramesTests.test_bucket_never_truncates) ... ok
+test_caps_at_total (extensions.fast_asr.tests.test_trim.TrimmedFramesTests.test_caps_at_total) ... ok
+test_exactly_one_mode (extensions.fast_asr.tests.test_trim.TrimmedFramesTests.test_exactly_one_mode) ... ok
+test_margin_rounds_up_to_8 (extensions.fast_asr.tests.test_trim.TrimmedFramesTests.test_margin_rounds_up_to_8) ... ok
+
+----------------------------------------------------------------------
+Ran 48 tests in 95.340s
+
+OK (skipped=2)
