@@ -12,7 +12,7 @@ class RopeOffsetTests(unittest.TestCase):
         from glm_asr_cuda import ops
         from glm_asr_cuda.model import inv_freq
         from extensions.fast_asr.rope_offset import rope_at_
-        cls.torch, cls.ops, cls.rope_at_ = torch, ops, rope_at_
+        cls.torch, cls.ops, cls.rope_at_ = torch, ops, staticmethod(rope_at_)
         cls.freq, cls.rdim = inv_freq(128, 1.0, 10000.0, "cuda")
         cls.afreq, cls.ardim = inv_freq(64, 0.5, 10000.0, "cuda")
 

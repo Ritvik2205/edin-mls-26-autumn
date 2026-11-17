@@ -29,7 +29,7 @@ class EquivalenceTests(unittest.TestCase):
         from extensions.fast_asr.kv_model import load_fast, prepare_inputs, real_frames
         from extensions.fast_asr.audio import read_audio
         from glm_asr_cuda import ops
-        cls.torch, cls.ops, cls.real_frames = torch, ops, real_frames
+        cls.torch, cls.ops, cls.real_frames = torch, ops, staticmethod(real_frames)
         ops.set_cuda_groups(GROUPS)
         cls.fast, cls.processor = load_fast()
         cls.base = cls.fast.base
