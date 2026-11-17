@@ -70,9 +70,9 @@
 % We remove the first redundancy exactly with a KV cache built on our own CUDA
 % kernels, and the second approximately by trimming the encoder input to the
 % real audio length plus a margin.
-% On a pinned RTX 2080 Ti, the KV cache cuts mean ASR latency 1.9x with
+% On a pinned RTX 2080 Ti, the KV cache cuts mean ASR latency 2.0x with
 % bit-identical transcripts, and trimming to the real length brings the total to
-% 4.7x with no Recall@10 change distinguishable from zero (practice, n=350).
+% 4.8x with no Recall@10 change distinguishable from zero (dev, n=125).
 % A cost model written before measurement predicts the encoder savings within
 % 7%, and explains why decoding then becomes a weight-bandwidth-bound GEMV.
 
@@ -324,30 +324,30 @@ Right: latency against Recall@10 over trim settings. Dev, $n=125$, RTX 2080 Ti.}
 \label{fig:breakdown}
 \end{figure}
 
-% NUMBERS BELOW ARE PRACTICE (n=350); swap for dev once tables/asr_dev.tex exists.
-\textbf{KV cache (exact).} V2 cuts mean ASR latency from 4643 to 2453\,ms (1.9$\times$)
-and decoder time from 2864 to 734\,ms (3.9$\times$); the median step falls from 165.6
-to 38.4\,ms. All 350 transcripts are identical to V1, and the unit test confirms the
+\textbf{KV cache (exact).} V2 cuts mean ASR latency from 4971 to 2495\,ms (2.0$\times$)
+and decoder time from 3186 to 755\,ms (4.2$\times$); the median step falls from 186.8
+to 38.1\,ms. All 125 transcripts are identical to V1, and the unit test confirms the
 token probabilities are bit-identical, as hypothesised in \S\ref{sec:design}. The
-cache costs at most 28\,MB against 8.6\,GiB of weights, so peak memory is unchanged.
-A V2 step streams the 5.9\,GB of decoder and lm\_head weights in 38.4\,ms, i.e.\
-153\,GB/s or 25\% of peak bandwidth: 4.4$\times$ above the 8.8\,ms floor. Prefill
-(the whole prompt plus the first token) takes 156\,ms in both V1 and V2. With
-decoding cheap, the unchanged 1.70\,s encoder becomes 69\% of V2's latency, which is
+cache costs at most 26\,MB against 8.6\,GiB of weights, so peak memory is unchanged.
+A V2 step streams the 5.9\,GB of decoder and lm\_head weights in 38.1\,ms, i.e.\
+155\,GB/s or 25\% of peak bandwidth: 4.3$\times$ above the 8.8\,ms floor. Prefill
+(the whole prompt plus the first token) takes 167--179\,ms in every variant. With
+decoding cheap, the unchanged 1.71\,s encoder becomes 69\% of V2's latency, which is
 what V3 attacks.
 
 \textbf{Encoder trimming (approximate).} Trimming to the real length (m0) cuts the
-median encoder time from 1700 to 232\,ms; with a 2\,s margin it is 327\,ms and with
-the 10\,s bucket 489\,ms. Mean ASR latency becomes 991, 1092 and 1238\,ms, i.e.\
-4.7$\times$, 4.3$\times$ and 3.8$\times$ faster than V1. The cost is small: 22, 19 and
-18 of 350 transcripts change (WER against V1 0.8\%, 0.4\% and 0.5\%), and the change
-in Recall@10 is $+0.004$ $[-0.006, +0.014]$, $-0.002$ $[-0.009, +0.002]$ and $+0.004$
-$[+0.000, +0.010]$; MRR@10 moves by at most $+0.005$. No setting changes retrieval
-measurably. That b10 still changes 18 transcripts shows the mechanism: no real audio
-is cut in any setting, so every change comes from real frames no longer attending to
-padding, and how much padding remains matters less than whether it is the full 30\,s.
-After trimming, the decoder (prefill plus steps, $\approx$885\,ms) is 89\% of V3-m0's
-latency.
+median encoder time from 1717 to 266\,ms; with a 2\,s margin it is 359\,ms and with
+the 10\,s bucket 486\,ms. Mean ASR latency becomes 1036, 1129 and 1256\,ms, i.e.\
+4.8$\times$, 4.4$\times$ and 4.0$\times$ faster than V1. The cost is small: 11, 5 and
+5 of 125 transcripts change (WER against V1 0.8\%, 0.3\% and 0.3\%). Recall@10 is
+unchanged for every query under m2 and b10, and under m0 the change is $+0.000$
+$[-0.012, +0.012]$; MRR@10 moves by at most $+0.004$. No setting changes retrieval
+measurably, and the practice split agrees (4.7$\times$ for m0; every $\Delta$Recall@10
+interval within $\pm0.01$; Appendix~\ref{app:practice}). That b10 still changes
+transcripts shows the mechanism: no real audio is cut in any setting, so every change
+comes from real frames no longer attending to padding, and how much padding remains
+matters less than whether it is the full 30\,s. After trimming, the decoder (prefill
+plus steps, $\approx$910\,ms) is 88\% of V3-m0's latency.
 
 \begin{figure}[t]
 \centering
@@ -357,11 +357,13 @@ RTX 2080 Ti.}
 \label{fig:speedup}
 \end{figure}
 
-\textbf{Prediction vs measurement.} The encoder ratios are 3--7\% below the FLOP
-model in every setting. The model weighs attention FLOPs like GEMM FLOPs, but our
+\textbf{Prediction vs measurement.} On practice, whose median query the model was
+written for, the encoder ratios are 3--7\% below the FLOP model in every setting; on
+dev, b10 (the one setting whose shape does not depend on clip length) gives 0.283,
+5\% below. The model weighs attention FLOPs like GEMM FLOPs, but our
 attention kernel runs at 959\,GFLOP/s against 1380--1860 for our GEMM
 (\texttt{make test}), so the quadratic term is a larger share of \emph{time} at
-$T=1500$ than of FLOPs, and removing it saves more than predicted. The V1 step
+$T=1500$ than of FLOPs, and removing it saves more than predicted. The practice V1 step
 (165.6\,ms) is far above the 35\,ms weight-traffic bound: V1 is compute-bound. Its
 FLOP term, at the 1.27\,TFLOP/s our GEMM reaches on decoder shapes, predicts 180\,ms;
 the 9\% overestimate fits our GEMM running faster with the 77--90 rows of a real
@@ -408,14 +410,14 @@ floor already never cuts audio.
 bandwidth argument predicts different ratios on GPUs with a different
 FLOP-to-bandwidth balance. Without reference transcripts, WER is measured against V1,
 so it measures change rather than error. The dev split has 125 queries, which limits
-how small a retrieval difference can be resolved: on practice ($n=350$) the 95\%
-intervals on $\Delta$Recall@10 are about $\pm0.01$ wide. The ELM judge was not run, so
+how small a retrieval difference can be resolved: the widest 95\% interval on
+$\Delta$Recall@10 is $\pm0.012$ (dev, m0), and $\pm0.01$ on practice ($n=350$). The ELM judge was not run, so
 we show that trimming does not change \emph{retrieval}, not that it never changes an
-answer; the 5--6\% of changed transcripts are where answers could differ.
+answer; the 4--9\% of changed transcripts are where answers could differ.
 
 \textbf{Conclusion.} About 79\% of the baseline ASR time was redundant work: the KV
-cache removes the prefix recomputation exactly (1.9$\times$, bit-identical), and
-trimming the encoder to the real audio removes the padding approximately (4.7$\times$
+cache removes the prefix recomputation exactly (2.0$\times$, bit-identical), and
+trimming the encoder to the real audio removes the padding approximately (4.8$\times$
 in total) at no measurable retrieval cost. What remains is a decoder that streams
 5.9\,GB of weights per token at a quarter of peak bandwidth, so a GEMV kernel for
 $M=1$ is the next step, not more redundancy removal.
@@ -533,6 +535,7 @@ layers), on the same node. The gap to V1 is almost entirely in \texttt{linear}.
 \logorTBD{logs/profile_torch.txt}{\texttt{./run.sh --cuda none --profile} output}
 
 \subsection{Practice split results}
+\label{app:practice}
 \IfFileExists{tables/asr_practice.tex}{{\centering\resizebox{\linewidth}{!}{\input{tables/asr_practice.tex}}\par}}{\TBD{\texttt{tables/asr\_practice.tex} not generated yet}}
 
 \section{Reproducibility}

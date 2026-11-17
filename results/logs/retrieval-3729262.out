@@ -1,0 +1,53 @@
+node: saxa.inf.ed.ac.uk  cpus: 4
+Model name:                              INTEL(R) XEON(R) GOLD 6542Y
+e6f04ed scripts: CPU retrieval-scoring sbatch for cached transcripts
+=== v1 (125 cached transcripts)
+exit 0
+
+Aggregate:
+  Recall@5   0.379497
+  Recall@10  0.474595
+  Recall@20  0.579521
+  Recall@100 0.724426
+  MRR@10     0.459708
+  NDCG@10    0.398342
+=== v2 (125 cached transcripts)
+exit 0
+
+Aggregate:
+  Recall@5   0.379497
+  Recall@10  0.474595
+  Recall@20  0.579521
+  Recall@100 0.724426
+  MRR@10     0.459708
+  NDCG@10    0.398342
+=== v3_m0 (125 cached transcripts)
+exit 0
+
+Aggregate:
+  Recall@5   0.379497
+  Recall@10  0.474595
+  Recall@20  0.587521
+  Recall@100 0.721760
+  MRR@10     0.464108
+  NDCG@10    0.400884
+=== v3_m2 (125 cached transcripts)
+exit 0
+
+Aggregate:
+  Recall@5   0.379497
+  Recall@10  0.474595
+  Recall@20  0.579521
+  Recall@100 0.724426
+  MRR@10     0.459708
+  NDCG@10    0.398226
+=== v3_b10 (125 cached transcripts)
+exit 0
+
+Aggregate:
+  Recall@5   0.379497
+  Recall@10  0.474595
+  Recall@20  0.579521
+  Recall@100 0.724426
+  MRR@10     0.459708
+  NDCG@10    0.398226
