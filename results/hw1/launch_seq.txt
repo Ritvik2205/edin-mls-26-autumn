@@ -1,0 +1,5 @@
+GPU: NVIDIA GeForce RTX 2080 Ti  ASR_GEMV: seq  audio: test_audio.wav
+13 tokens, 12 steps after the first token, 5 repeats
+  step 31.15 ms = issue 29.16 ms (min 29.01, max 29.39) + wait 1.99 ms (min 1.65, max 2.56); wait is 6% of the step
+  launch path, 1 x 16 weight, best of 20 batches of 340 calls, us per call: ctypes launch_linear 9.5, ops.linear 78.1, torch x + x 18.2
+  340 calls through ops.linear: 26.54 ms

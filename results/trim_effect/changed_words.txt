@@ -1,0 +1,46 @@
+dev v3_b10 q_bba95a0c50bb2b65
+  V1:      Is harmony gold mining companies stock price different on the NYSE and JSE?
+  trimmed: Is harmony gold mining company's stock price different on the NYSE and JSE?
+  only in V1 ['companies'] (in a relevant passage: False); only in trimmed ['companys'] (in a relevant passage: False)
+dev v3_m0 q_14946dca186a869c
+  V1:      What is the tax liability for stocks vested by a H one B visa holder?
+  trimmed: What is the tax liability for stocks vested by a H1B visa holder?
+  only in V1 ['h', 'one', 'b'] (in a relevant passage: False); only in trimmed ['h1b'] (in a relevant passage: False)
+dev v3_m0 q_94efba4b07bc12eb
+  V1:      I am starting a hedge fund. What does that entail, given my specific, simple investment thesis?
+  trimmed: I'm starting a hedge fund. What does that entail, given my specific, simple investment thesis?
+  only in V1 ['i', 'am'] (in a relevant passage: True); only in trimmed ['im'] (in a relevant passage: True)
+dev v3_m0 q_929d9f9a0e015d65
+  V1:      Our mutual funds protected from default risk.
+  trimmed: Are mutual funds protected from default risk?
+  only in V1 ['our'] (in a relevant passage: False); only in trimmed ['are'] (in a relevant passage: True)
+practice v3_b10 q_90caf2950d97119c
+  V1:      How do I file taxes for the sale of stocks from Form Ten Ninety Nine B?
+  trimmed: How do I file taxes for the sale of stocks from Form 1099-B?
+  only in V1 ['ten', 'ninety', 'nine', 'b'] (in a relevant passage: False); only in trimmed ['1099b'] (in a relevant passage: True)
+practice v3_b10 q_f7804f0551b36345
+  V1:      Should I exchange my money from Portugal to the US dollar before leaving or after arriving in the US?
+  trimmed: Should I exchange my money from Portugal to the US dollar before leaving or after arriving in the USA?
+  only in V1 [] (in a relevant passage: False); only in trimmed ['usa'] (in a relevant passage: True)
+practice v3_b10 q_a458b2b0b65f17df
+  V1:      Are bond ETF capital gains taxed similarly to stock ETFs or mutual funds if held for more than one year?
+  trimmed: Our bond ETF capital gains taxed similarly to stock ETFs or mutual funds if held for more than one year.
+  only in V1 ['are'] (in a relevant passage: True); only in trimmed ['our'] (in a relevant passage: False)
+practice v3_b10 q_9c3b1086df278d77
+  V1:      How do government bonds yields function?
+  trimmed: How do government bond yields function?
+  only in V1 ['bonds'] (in a relevant passage: True); only in trimmed ['bond'] (in a relevant passage: True)
+practice v3_b10 q_888759d4b14e5e7a
+  V1:      Should I purchase or lease a car that I'd drive fifteen miles a day on average?
+  trimmed: Should I purchase or lease a car that I drive fifteen miles a day on average?
+  only in V1 ['id'] (in a relevant passage: False); only in trimmed [] (in a relevant passage: False)
+practice v3_m0 q_c3dad6ee3fe9e058
+  V1:      What are the tax write offs available for individuals, and how much do I need to spend before the end of the year to maximize these deductions?
+  trimmed: What are the tax write offs available for individuals, and how much do I need to spend before the end of the year to maximise these deductions?
+  only in V1 ['maximize'] (in a relevant passage: False); only in trimmed ['maximise'] (in a relevant passage: False)
+practice v3_m0 q_c5a5320bcfd3a373
+  V1:      How to transfer money from four hundred three B to four hundred one K.
+  trimmed: How to transfer money from 403B to 401K.
+  only in V1 ['four', 'hundred', 'three', 'b', 'four', 'hundred', 'one', 'k'] (in a relevant passage: False); only in trimmed ['403b', '401k'] (in a relevant passage: True)
+
+11 word-level changes; only the trimmed wording occurs in a relevant passage: 4; only V1's: 1; both or neither: 6

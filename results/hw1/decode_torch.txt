@@ -1,0 +1,22 @@
+GPU: NVIDIA GeForce RTX 2080 Ti  kernels: none  ASR_GEMV: off  audio: test_audio.wav
+prompt 59 positions, 13 tokens, 12 steps after the first token, 5 repeats; 340 profiled calls per step (attention 28, embedding 1, linear 197, rmsnorm 57, rope 28, silu_mul 28, softmax 1)
+
+  operation          calls   shape N x K  ms/step  us/call  floor ms  x floor
+  rope                  28                  19.68    702.9
+  attention             28                  15.44    551.5
+  rmsnorm               57                  10.46    183.6
+  linear gate_proj      28   6144 x 2048     4.07    145.5      2.29      1.8
+  linear down_proj      28   2048 x 6144     3.83    136.7      2.29      1.7
+  linear up_proj        28   6144 x 2048     3.63    129.6      2.29      1.6
+  linear o_proj         28   2048 x 2048     2.34     83.4      0.76      3.1
+  linear q_proj         28   2048 x 2048     2.27     81.2      0.76      3.0
+  linear k_proj         28    512 x 2048     2.00     71.6      0.19     10.5
+  linear v_proj         28    512 x 2048     1.98     70.6      0.19     10.4
+  silu_mul              28                   1.82     65.1
+  linear lm_head         1  59264 x 2048     0.89    887.6      0.79      1.1
+  embedding              1                   0.09     86.6
+  softmax                1                   0.02     24.6
+
+  step, unprofiled: 67.96 ms (min 66.12, max 69.20); profiled: 95.06 ms
+  GPU time in profiled operations: 68.53 ms per step; weight-bandwidth floor of the linear calls: 9.56 ms
+  outside profiled operations: -0.57 ms per step (-1% of the unprofiled step)

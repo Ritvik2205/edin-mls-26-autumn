@@ -1,0 +1,24 @@
+GPU: NVIDIA GeForce RTX 2080 Ti (sm_75), 68 SMs, peak memory bandwidth about 616 GB/s
+
+tiny 3 x 5, K = 7                    PASS  max_err=9.76e-09     0.003 ms        0 GFLOP/s
+    for comparison: naive      0 GFLOP/s, cuBLAS      0 GFLOP/s (CPU reference)
+odd sizes 37 x 100, K = 33, bias     PASS  max_err=1.55e-07     0.004 ms       60 GFLOP/s
+    for comparison: naive     35 GFLOP/s, cuBLAS     26 GFLOP/s (CPU reference)
+odd sizes, bias + GELU               PASS  max_err=7.70e-07     0.007 ms      123 GFLOP/s
+    for comparison: naive     87 GFLOP/s, cuBLAS     85 GFLOP/s (CPU reference)
+decoder q_proj (64x2048x2048)        PASS  max_err=1.10e-05     0.443 ms     1213 GFLOP/s
+    for comparison: naive    153 GFLOP/s, cuBLAS   4570 GFLOP/s (cuBLAS reference)
+decoder gate_proj (64x6144x2048)     PASS  max_err=1.19e-05     1.206 ms     1336 GFLOP/s
+    for comparison: naive    162 GFLOP/s, cuBLAS   6736 GFLOP/s (cuBLAS reference)
+decoder down_proj (64x2048x6144)     PASS  max_err=3.62e-05     1.258 ms     1281 GFLOP/s
+    for comparison: naive    175 GFLOP/s, cuBLAS   7850 GFLOP/s (cuBLAS reference)
+lm_head, last token (1x59264x2048)   PASS  max_err=1.24e-05     1.996 ms      122 GFLOP/s
+    for comparison: naive    115 GFLOP/s, cuBLAS    291 GFLOP/s (cuBLAS reference)
+encoder q_proj (1500x1280x1280)      PASS  max_err=2.38e-07     2.616 ms     1879 GFLOP/s
+    for comparison: naive    227 GFLOP/s, cuBLAS  13008 GFLOP/s (cuBLAS reference)
+encoder fc1 + GELU (1500x5120x1280)  PASS  max_err=6.92e-07    14.216 ms     1383 GFLOP/s
+    for comparison: naive    227 GFLOP/s, cuBLAS  13242 GFLOP/s (cuBLAS reference)
+conv2 via im2col (1500x1280x3840)    PASS  max_err=7.16e-07    10.132 ms     1455 GFLOP/s
+    for comparison: naive    227 GFLOP/s, cuBLAS  13112 GFLOP/s (cuBLAS reference)
+
+Task 3 (tiled GEMM): ALL PASS

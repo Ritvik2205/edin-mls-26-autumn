@@ -1,0 +1,14 @@
+test_kv_decode_with_gemv (extensions.fast_asr.tests.test_gemv.GemvTests.test_kv_decode_with_gemv)
+seq: tokens and probabilities equal V1's bit for bit. warp: reported, tokens checked. ... ok
+test_off_at_m1_equals_tiled_row (extensions.fast_asr.tests.test_gemv.GemvTests.test_off_at_m1_equals_tiled_row) ... ok
+test_seq_is_bit_identical_to_tiled (extensions.fast_asr.tests.test_gemv.GemvTests.test_seq_is_bit_identical_to_tiled) ... ok
+test_warp_is_close_to_tiled (extensions.fast_asr.tests.test_gemv.GemvTests.test_warp_is_close_to_tiled) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 45.201s
+
+OK
+
+warp GEMV decode: tokens equal V1: True, max probability difference 5.603e-06
+
+warp GEMV vs tiled: max abs difference 7.629e-06

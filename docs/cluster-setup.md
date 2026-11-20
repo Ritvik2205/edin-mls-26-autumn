@@ -26,8 +26,8 @@ Expected: `branch 'coursework' set up to track 'origin/coursework'`.
 `mlp` only accepts connections from the Informatics VPN or a DICE machine. Otherwise go through `ssh.inf.ed.ac.uk` first.
 
 ```bash
-ssh <uun>@ssh.inf.ed.ac.uk      # only if not on VPN/DICE
-ssh <uun>@mlp.inf.ed.ac.uk
+ssh s2473583@ssh.inf.ed.ac.uk      # only if not on VPN/DICE
+ssh s2473583@mlp.inf.ed.ac.uk
 ```
 
 Clone and check out:
@@ -105,6 +105,11 @@ For RAG scripts in the same shell, also run:
 export RAG_ASR_PYTHON="$(python -c 'import sys; print(sys.executable)')"
 source "$HOME/mls-rag-env/bin/activate"
 ```
+
+**Do not keep the venv active for `hw1-asr/` work.** The venv's `python` (no torch) shadows the conda one,
+so `./run.sh`, `make test` and the `rag/extensions` GPU tests fail with `No module named 'torch'`.
+Run `deactivate` first and check `which python` points into `envs/mls-asr`. The ASR worker launched
+by RAG scripts is fine either way: it uses `RAG_ASR_PYTHON`.
 
 ## 4. Validate setup (PyTorch only, no kernels needed)
 
@@ -274,11 +279,11 @@ Run on the Mac. Local CPU retrieval scoring from cached transcripts is allowed (
 
 ```bash
 cd ~/edin-mls-26-autumn
-rsync -av <uun>@mlp.inf.ed.ac.uk:edin-mls-26-autumn/results/ results/
-rsync -av <uun>@mlp.inf.ed.ac.uk:edin-mls-26-autumn/rag/.cache/ rag/.cache/
+rsync -av s2473583@mlp.inf.ed.ac.uk:edin-mls-26-autumn/results/ results/
+rsync -av s2473583@mlp.inf.ed.ac.uk:edin-mls-26-autumn/rag/.cache/ rag/.cache/
 ```
 
-Off VPN, add `-e "ssh -J <uun>@ssh.inf.ed.ac.uk"`. Then locally:
+Off VPN, add `-e "ssh -J s2473583@ssh.inf.ed.ac.uk"`. Then locally:
 
 ```bash
 python rag/scripts/evaluate_rag.py --device cpu --split practice --transcript-cache rag/.cache/practice_v1.jsonl | tee results/retrieval/practice_v1.txt
@@ -312,7 +317,7 @@ Generation and judging spend real requests: start with `--limit 5` / `--dry-run`
 |---|---|---|
 | `No GPU found. Build on a GPU node` | On the head node | Step 3 `srun` first |
 | `nvcc: command not found` | CUDA not on PATH | `export PATH=/opt/cuda-12.8.0/bin:$PATH` |
-| `ModuleNotFoundError: No module named 'torch'` | conda env not active | `conda activate mls-asr` |
+| `ModuleNotFoundError: No module named 'torch'` | conda env not active, or `mls-rag-env` venv active on top of it (prompt shows both) | `deactivate`, then `conda activate mls-asr`; `which python` must be in `envs/mls-asr` |
 | `no kernel image is available for execution` | Library built on a different GPU type | `make` (or `make -C hw1-asr lib`) on the node you run on; check `nvidia-smi -L` |
 | Timings differ wildly between runs | Different GPU type | Always pin `--gres=gpu:nvidia_geforce_rtx_2080_ti:1` |
 | Test `FAIL` with `got 0` | Blank empty or wrong write index | Check that blank against its guide |

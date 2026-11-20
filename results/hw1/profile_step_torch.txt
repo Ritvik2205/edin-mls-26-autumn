@@ -1,0 +1,18 @@
+GPU: NVIDIA GeForce RTX 2080 Ti  kernels: none  audio: test_audio.wav
+prompt 59 positions, 13 tokens
+unprofiled: encode 300.3 ms, prefill 65.7 ms, decode 858.9 ms, 66.10 ms per step after the first token
+profiled:   encode 281.5 ms, decode 1202.5 ms
+
+per operation, whole transcription (4747 calls, 1153.7 ms in kernels):
+  operation    runs on    calls   total ms   us/call
+  linear       torch       2757      436.3     158.2
+  attention    torch        396      302.0     762.5
+  rope         torch        396      260.4     657.5
+  rmsnorm      torch        741      129.0     174.1
+  silu_mul     torch        364       21.8      60.0
+  layernorm    torch         65        2.5      39.1
+  embedding    torch         13        1.0      79.2
+  im2col       torch          2        0.3     167.8
+  softmax      torch         13        0.3      23.9
+
+profiled encode+decode 1484.0 ms = 1153.7 ms in kernels + 330.3 ms between them (22.3%)

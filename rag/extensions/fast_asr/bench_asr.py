@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import socket
 import subprocess
 import sys
@@ -166,6 +167,9 @@ def main():
     g.add_argument("--margin", type=float, help="v3: seconds of padding kept after the audio")
     g.add_argument("--bucket", type=float, help="v3: encode at least this many seconds")
     ap.add_argument("--cuda", default="all")
+    ap.add_argument("--gemv", choices=["off", "seq", "warp"], default="off",
+                    help="kernel for M = 1 linear layers (ASR_GEMV): off = tiled GEMM, seq = "
+                         "order-preserving GEMV, warp = warp-per-column GEMV")
     ap.add_argument("--out-csv", type=Path, required=True)
     ap.add_argument("--cache", type=Path, required=True)
     ap.add_argument("--warmup", type=int, default=5)
@@ -180,6 +184,9 @@ def main():
         ap.error("--margin/--bucket only apply to v3")
     setting = "full" if args.variant != "v3" else (f"m{args.margin:g}" if args.margin is not None
                                                      else f"b{args.bucket:g}")
+    if args.gemv != "off":
+        setting += f"+{args.gemv}"
+    os.environ["ASR_GEMV"] = args.gemv  # launch_linear reads it at every launch
 
     import torch
     from extensions.fast_asr import _paths  # noqa: F401

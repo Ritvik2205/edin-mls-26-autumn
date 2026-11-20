@@ -1,0 +1,66 @@
+[1/125] q_dc0daa63c6ad372c
+[26/125] q_fe7a2a5d67cc1106
+[51/125] q_cb61d17cb90968de
+[76/125] q_9fff7ae6921ad2c6
+[101/125] q_3b315cdea7a19bd1
+Wrote 500 rows to results/trim_effect/dev.csv
+m0   n=125  rel_l2 median 0.1893 (max 0.3052)  mean cos 0.97659  changed 11
+       rel_l2 median, changed vs same: 0.1809 vs 0.1895;  min top-1 prob of the full run, changed
+           vs same: 0.502 vs 0.728
+       q_3576d20498b24f50 step 17: full ',' p=0.468 (alt 0.455); trimmed ' and' p=0.499 (alt
+           0.423)
+       q_77e405127e09b49c step 9: full ' Trust' p=0.485 (alt 0.426); trimmed 'Trust' p=0.464 (alt
+           0.447)
+       q_14946dca186a869c step 12: full ' one' p=0.379 (alt 0.186); trimmed '1' p=0.431 (alt
+           0.206)
+       q_bba95a0c50bb2b65 step 4: full ' companies' p=0.543 (alt 0.449); trimmed ' company'
+           p=0.530 (alt 0.461)
+       q_eda9e6976c4135b0 step 3: full ' P' p=0.567 (alt 0.392); trimmed ' PE' p=0.533 (alt 0.414)
+       q_94efba4b07bc12eb step 1: full ' am' p=0.622 (alt 0.375); trimmed "'m" p=0.517 (alt 0.480)
+       q_b81e42cba4ba2821 step 5: full ' US' p=0.556 (alt 0.438); trimmed ' U' p=0.735 (alt 0.255)
+       q_4e26a72bfdd314a3 step 6: full ',' p=0.502 (alt 0.356); trimmed '?' p=0.472 (alt 0.389)
+       q_929d9f9a0e015d65 step 0: full 'Our' p=0.636 (alt 0.348); trimmed 'Are' p=0.503 (alt
+           0.482)
+       q_54feaf0a76462c56 step 15: full ' U' p=0.536 (alt 0.459); trimmed ' US' p=0.695 (alt
+           0.298)
+       q_e3e73f9ccdca5810 step 15: full ' I' p=0.529 (alt 0.406); trimmed ' IS' p=0.445 (alt
+           0.442)
+m2   n=125  rel_l2 median 0.1390 (max 0.2508)  mean cos 0.98894  changed 5
+       rel_l2 median, changed vs same: 0.1397 vs 0.1388;  min top-1 prob of the full run, changed
+           vs same: 0.497 vs 0.712
+       q_77e405127e09b49c step 9: full ' Trust' p=0.485 (alt 0.426); trimmed 'Trust' p=0.464 (alt
+           0.442)
+       q_62f55195e3b0ecac step 8: full '?' p=0.322 (alt 0.313); trimmed ',' p=0.326 (alt 0.315)
+       q_bba95a0c50bb2b65 step 4: full ' companies' p=0.543 (alt 0.449); trimmed ' company'
+           p=0.528 (alt 0.462)
+       q_3b315cdea7a19bd1 step 11: full '?' p=0.557 (alt 0.307); trimmed '<|user|>' p=0.458 (alt
+           0.429)
+       q_54feaf0a76462c56 step 15: full ' U' p=0.536 (alt 0.459); trimmed ' US' p=0.617 (alt
+           0.376)
+m5   n=125  rel_l2 median 0.1230 (max 0.2172)  mean cos 0.99130  changed 7
+       rel_l2 median, changed vs same: 0.1286 vs 0.1229;  min top-1 prob of the full run, changed
+           vs same: 0.485 vs 0.716
+       q_3576d20498b24f50 step 17: full ',' p=0.468 (alt 0.455); trimmed ' and' p=0.476 (alt
+           0.447)
+       q_d96b734b2bc02b5a step 12: full ' UK' p=0.499 (alt 0.491); trimmed ' U' p=0.534 (alt
+           0.454)
+       q_77e405127e09b49c step 9: full ' Trust' p=0.485 (alt 0.426); trimmed 'Trust' p=0.480 (alt
+           0.441)
+       q_62f55195e3b0ecac step 8: full '?' p=0.322 (alt 0.289); trimmed ':' p=0.311 (alt 0.305)
+       q_3b315cdea7a19bd1 step 11: full '?' p=0.557 (alt 0.307); trimmed '<|user|>' p=0.484 (alt
+           0.424)
+       q_623ca02323bdcf42 step 22: full '?' p=0.360 (alt 0.305); trimmed '.' p=0.335 (alt 0.333)
+       q_54feaf0a76462c56 step 15: full ' U' p=0.536 (alt 0.459); trimmed ' US' p=0.555 (alt
+           0.438)
+b10  n=125  rel_l2 median 0.1213 (max 0.1993)  mean cos 0.99147  changed 5
+       rel_l2 median, changed vs same: 0.1045 vs 0.1215;  min top-1 prob of the full run, changed
+           vs same: 0.485 vs 0.712
+       q_3576d20498b24f50 step 17: full ',' p=0.468 (alt 0.455); trimmed ' and' p=0.466 (alt
+           0.459)
+       q_77e405127e09b49c step 9: full ' Trust' p=0.485 (alt 0.426); trimmed 'Trust' p=0.480 (alt
+           0.446)
+       q_62f55195e3b0ecac step 8: full '?' p=0.322 (alt 0.313); trimmed ',' p=0.324 (alt 0.307)
+       q_bba95a0c50bb2b65 step 4: full ' companies' p=0.543 (alt 0.449); trimmed ' company'
+           p=0.524 (alt 0.466)
+       q_54feaf0a76462c56 step 15: full ' U' p=0.536 (alt 0.459); trimmed ' US' p=0.565 (alt
+           0.428)

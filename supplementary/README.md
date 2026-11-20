@@ -8,7 +8,9 @@ carries the argument and the evidence.
 | Path | Status |
 |------|--------|
 | `hw1-asr/csrc/task1_rope.cu`, `task2_reduce.cuh`, `task2_reduce.cu`, `task3_gemm.cu`, `task4_attention.cu` | Supplied skeletons; the blanks are ours (HW1) |
-| `rag/extensions/fast_asr/` | Ours: KV-cache decoding (V2), encoder trimming (V3), timing harness, variant ASR worker |
+| `hw1-asr/csrc/task3_gemm.cu`, block marked "Extension" | Ours: two GEMV kernels for `M = 1`, selected by `ASR_GEMV=seq|warp`; unset or `off` gives the hand-in kernel |
+| `rag/extensions/fast_asr/` | Ours: KV-cache decoding (V2), encoder trimming (V3), timing harness, per-step profilers, variant ASR worker |
+| `scripts/` | Ours: Slurm jobs that produced `results/` |
 | `rag/extensions/analysis/` | Ours: answer candidates for the judge, ID selection, tables and figures |
 | `rag/extensions/run_audio_query_fast.py` | Ours: `rag/scripts/run_audio_query.py` with a selectable ASR variant |
 | `results/` | Our measurements (CSV and text outputs) |
@@ -35,6 +37,14 @@ python rag/extensions/fast_asr/bench_asr.py --split dev --variant v1 --out-csv r
 python rag/extensions/fast_asr/bench_asr.py --split dev --variant v2 --out-csv results/asr/dev_v2.csv --cache rag/.cache/dev_v2.jsonl
 python rag/extensions/fast_asr/bench_asr.py --split dev --variant v3 --margin 1 --out-csv results/asr/dev_v3_m1.csv --cache rag/.cache/dev_v3_m1.jsonl
 
+# GEMV kernels at M = 1 (bit-identity tests, one decode step per operation, a dev run)
+python -m unittest discover -s rag/extensions/fast_asr/tests -t rag -p "test_gemv.py" -v
+ASR_GEMV=warp python rag/extensions/fast_asr/profile_decode.py
+ASR_GEMV=warp python rag/extensions/fast_asr/launch_cost.py   # host issue time vs GPU wait per step
+python rag/extensions/fast_asr/trim_effect.py --split dev --out-csv results/trim_effect/dev.csv   # embeddings and token margins, full vs trimmed
+python rag/extensions/analysis/changed_words.py   # word-level transcript changes vs relevant passages
+python rag/extensions/fast_asr/bench_asr.py --split dev --variant v3 --margin 0 --gemv warp --out-csv results/asr_gemv/dev_v3_m0_warp.csv --cache rag/.cache/asr_gemv_dev_v3_m0_warp.jsonl
+
 # retrieval quality from a cache (supplied script, unchanged)
 python rag/scripts/evaluate_rag.py --device cpu --split dev --transcript-cache rag/.cache/dev_v3_m1.jsonl
 
@@ -42,6 +52,9 @@ python rag/scripts/evaluate_rag.py --device cpu --split dev --transcript-cache r
 python rag/extensions/analysis/select_ids.py --v1 rag/.cache/dev_v1.jsonl --variant rag/.cache/dev_v3_m1.jsonl --out results/judge/dev_v3_m1_ids.txt
 python rag/extensions/analysis/generate_from_cache.py --split dev --question-cache rag/.cache/dev_v1.jsonl --transcript-cache rag/.cache/dev_v3_m1.jsonl --ids results/judge/dev_v3_m1_ids.txt --output rag/results/judge-v3_m1-dev.jsonl --device cpu
 python rag/scripts/evaluate_answers.py --split dev --candidates rag/results/judge-v3_m1-dev.jsonl --allow-subset --repeats 2 --out-dir results/judge/v3_m1
+
+# the judge runs of the report (changed transcripts + controls, 5 answer sets, 3 judge repeats)
+bash scripts/judge_changed.sh dev && python rag/extensions/analysis/judge_summary.py --split both
 
 # end-to-end demo with per-stage timings
 python rag/extensions/run_audio_query_fast.py --device cpu --variant v3 --margin 1

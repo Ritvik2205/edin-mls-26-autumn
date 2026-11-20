@@ -1,0 +1,18 @@
+GPU: NVIDIA GeForce RTX 2080 Ti  kernels: all  audio: test_audio.wav
+prompt 59 positions, 13 tokens
+unprofiled: encode 1642.5 ms, prefill 110.3 ms, decode 489.5 ms, 31.60 ms per step after the first token
+profiled:   encode 1649.5 ms, decode 766.5 ms
+
+per operation, whole transcription (4747 calls, 2168.1 ms in kernels):
+  operation    runs on    calls   total ms   us/call
+  linear       cuda        2757     1635.7     593.3
+  attention    cuda         396      423.1    1068.4
+  rmsnorm      cuda         741       56.2      75.9
+  rope         cuda         396       24.6      62.0
+  silu_mul     cuda         364       23.1      63.5
+  layernorm    cuda          65        2.5      37.8
+  softmax      cuda          13        1.5     117.9
+  embedding    cuda          13        1.3      99.4
+  im2col       cuda           2        0.2      89.2
+
+profiled encode+decode 2416.0 ms = 2168.1 ms in kernels + 247.9 ms between them (10.3%)

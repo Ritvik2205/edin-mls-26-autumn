@@ -10,8 +10,8 @@ rm -f "$OUT"
 files=$( {
   printf '%s\n' hw1-asr/csrc/task1_rope.cu hw1-asr/csrc/task2_reduce.cuh hw1-asr/csrc/task2_reduce.cu \
                 hw1-asr/csrc/task3_gemm.cu hw1-asr/csrc/task4_attention.cu
-  git ls-files rag/extensions supplementary
-  git ls-files results | grep -E '\.(csv|txt|md)$' || true
+  git ls-files rag/extensions supplementary scripts
+  git ls-files results | grep -E '\.(csv|txt|md|out|jsonl|json)$' || true
 } | grep -v '__pycache__' | sort -u )
 
 # shellcheck disable=SC2086
