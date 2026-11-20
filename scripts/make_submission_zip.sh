@@ -23,7 +23,7 @@ bad=$(unzip -Z1 "$OUT" | grep -E '(^|/)\.env|\.git/|rag/data/|rag/models/|\.cach
 leak_pattern=${LEAK_PATTERN:-'ELM_API_KEY=[^[:space:]]+|/Users/|/home/s[0-9]{7}|/afs/'}
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 unzip -q "$OUT" -d "$tmp"
-if grep -rInE "$leak_pattern" "$tmp" >/dev/null; then
-  echo "refusing: identifying or secret text found:"; grep -rInE "$leak_pattern" "$tmp" | sed "s#$tmp/##" | head; rm -f "$OUT"; exit 1
+if grep -rInE --exclude=make_submission_zip.sh "$leak_pattern" "$tmp" >/dev/null; then
+  echo "refusing: identifying or secret text found:"; grep -rInE --exclude=make_submission_zip.sh "$leak_pattern" "$tmp" | sed "s#$tmp/##" | head; rm -f "$OUT"; exit 1
 fi
 echo "wrote $OUT ($(unzip -Z1 "$OUT" | wc -l | tr -d ' ') files)"
